@@ -1,4 +1,4 @@
-$ErrorActionPreference='Stop'
+﻿$ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot
 . (Join-Path $root 'Settings-Core.ps1')
 . (Join-Path $root 'Log-Retention.ps1')
@@ -60,3 +60,14 @@ Check $rejected 'partial invalid import rejected'
 [IO.File]::WriteAllText($path,('x'*65537))
 $rejected=$false;try{Import-TrofeoSettings $path}catch{$rejected=$true}
 Check $rejected 'oversized import rejected'
+
+$display=New-TrofeoDefaults
+$display.DisplayBlocks='CPU,GPU';$display.CpuMetric='temperature';$display.GpuMetric='vram';$display.AccentColor='#FF8844';$display.TextPercent=110;$display.ShowGraphs=$false
+Save-TrofeoSettings $display $path
+$read=Import-TrofeoSettings $path
+$argsDisplay=@(Get-TrofeoArguments $read 'Monitor' $testRoot $root)
+Check ($read.DisplayBlocks -eq 'CPU,GPU' -and $read.AccentColor -eq '#FF8844' -and $argsDisplay -contains '--hide-graphs' -and $argsDisplay -contains 'temperature') 'display settings round trip import and launch forwarding'
+foreach($bad in @('','CPU,CPU','UNKNOWN')){
+    $display.DisplayBlocks=$bad;$rejected=$false;try{Save-TrofeoSettings $display $path}catch{$rejected=$true}
+    Check ($rejected -and (Read-TrofeoSettings $path).DisplayBlocks -eq 'CPU,GPU') 'bad display selection cannot overwrite saved settings'
+}

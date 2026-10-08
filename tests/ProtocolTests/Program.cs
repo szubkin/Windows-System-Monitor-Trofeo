@@ -1,3 +1,4 @@
+using WindowsSystemMonitorTrofeo.Monitoring;
 using WindowsSystemMonitorTrofeo.Usb;
 using WindowsSystemMonitorTrofeo.Rendering;
 using System.Buffers.Binary;
@@ -234,3 +235,59 @@ using(var doc=System.Text.Json.JsonDocument.Parse(File.ReadAllText(statusPath)))
 }
 Check(Directory.GetFiles(statusRoot,"*.jpg").Length==1,"open preview publishes acknowledged JPEG");
 Console.WriteLine($"FINAL PREVIEW: {checks} checks passed.");
+
+var displayOptions = new DisplayOptions(Blocks:"CPU,GPU", Accent:"#FF8844", TextPercent:110, CpuMetric:"temperature", GpuMetric:"vram");
+var customDashboard=Dashboard.Create(sample with { Hardware=extendedHw, History=points }, "artifacts/qa/dashboard-custom.png",0,display:displayOptions);
+Check(customDashboard.Length < LyFrame.MaxJpegBytes,"configured dashboard fits USB payload");
+using(var bitmap=new System.Drawing.Bitmap("artifacts/qa/dashboard-custom.png")){
+    Check(bitmap.GetPixel(55,99).ToArgb()==System.Drawing.Color.FromArgb(255,136,68).ToArgb(),"configured accent rendered");
+    Check(bitmap.GetPixel(960,100).ToArgb()!=bitmap.GetPixel(970,100).ToArgb(),"two equal panels separated by center gap");
+}
+var noGraphs=displayOptions with {Blocks="GPU", Graphs=false,DeviceNames=false};
+Dashboard.Create(sample with {Hardware=extendedHw,History=points},"artifacts/qa/dashboard-single.png",0,display:noGraphs);
+using(var bitmap=new System.Drawing.Bitmap("artifacts/qa/dashboard-single.png")){
+    Check(bitmap.GetPixel(54,322).ToArgb()==System.Drawing.Color.FromArgb(17,27,39).ToArgb(),"hidden graph leaves clear panel");
+}
+foreach(var invalid in new[]{new DisplayOptions(Blocks:""),new DisplayOptions(Blocks:"CPU,CPU"),new DisplayOptions(Blocks:"BAD"),new DisplayOptions(Accent:"red"),new DisplayOptions(TextPercent:200),new DisplayOptions(CpuMetric:"bad")}){
+    bool rejected=false;try{invalid.Validate();}catch(ArgumentException){rejected=true;}
+    Check(rejected,"invalid display configuration rejected");
+}
+for(int mask=1;mask<32;mask++){
+    string selectedBlocks=string.Join(",",DisplayOptions.AvailableBlocks.Where((b,index)=>(mask & (1<<index))!=0));
+    var frame=Dashboard.Create(sample with{Hardware=extendedHw},null,0,display:new DisplayOptions(Blocks:selectedBlocks,TextPercent:110));
+    Check(frame.Length<LyFrame.MaxJpegBytes,"all block combinations render within protocol limit");
+}
+Console.WriteLine($"FINAL DISPLAY: {checks} checks passed.");
+
+Check(MachineIdentity.FormatMemory(new[]{(24u,1600u),(24u,1600u)})=="DDR3 · 1600 MT/s","memory labels deduplicate identical modules");
+Check(MachineIdentity.FormatMemory(new[]{(26u,0u)})=="DDR4 · —","unknown configured speed is not replaced with rated speed");
+Check(MachineIdentity.FormatMemory(Array.Empty<(uint,uint)>())=="RAM · —","missing memory inventory has explicit fallback");
+Check(MachineIdentity.FormatMemory(new[]{(24u,1600u),(26u,3200u)}).Contains("DDR3 · 1600 MT/s / DDR4 · 3200 MT/s"),"mixed memory modules retain both types and speeds");
+var labeledSample=sample with{MemoryName="DDR3 · 1600 MT/s",NetworkName="Ethernet",Hardware=extendedHw,History=points};
+var roundTrip=System.Text.Json.JsonSerializer.Deserialize<Snapshot>(System.Text.Json.JsonSerializer.Serialize(labeledSample));
+Check(roundTrip?.MemoryName==labeledSample.MemoryName && roundTrip.NetworkName=="Ethernet","preview telemetry preserves memory and adapter labels");
+foreach(var mode in new[]{"load","temperature","clock"}){
+    Dashboard.Create(labeledSample,"artifacts/qa/dashboard-alignment-"+mode+".png",0,display:new DisplayOptions(CpuMetric:mode,GpuMetric:mode=="clock"?"load":mode));
+}
+
+var draftDir=Path.Combine("artifacts","qa","draft-"+Guid.NewGuid().ToString("N"));
+Directory.CreateDirectory(draftDir);
+var draftPath=Path.Combine(draftDir,"draft.json");
+var draftStatus=Path.Combine(draftDir,"status.json");
+var draftSettings=new Dictionary<string,object>{
+    ["DisplayBlocks"]="CPU,GPU",["AccentColor"]="#FF8844",["TextPercent"]=100,["CpuMetric"]="load",["GpuMetric"]="load",
+    ["ShowGraphs"]=true,["ShowDeviceNames"]=true,["CpuYellow"]=75,["CpuRed"]=90,["GpuYellow"]=70,["GpuRed"]=85,["Drive"]=""
+};
+File.WriteAllText(draftPath,System.Text.Json.JsonSerializer.Serialize(draftSettings));
+File.WriteAllText(draftStatus,System.Text.Json.JsonSerializer.Serialize(new{state="running",pid=Environment.ProcessId,updatedUtc=DateTime.UtcNow,snapshot=sample with{Hardware=extendedHw,History=points}}));
+var draftFirst=DraftPreview.Render(draftPath,draftStatus);
+var draftOriginal=File.ReadAllText(draftStatus);
+draftSettings["CpuMetric"]="temperature";draftSettings["AccentColor"]="#AA88FF";
+File.WriteAllText(draftPath,System.Text.Json.JsonSerializer.Serialize(draftSettings));
+var draftChanged=DraftPreview.Render(draftPath,draftStatus);
+Check(!draftFirst.SequenceEqual(draftChanged),"unsaved draft changes its preview");
+Check(File.ReadAllText(draftStatus)==draftOriginal,"draft rendering never mutates live monitor status");
+File.WriteAllText(draftStatus,System.Text.Json.JsonSerializer.Serialize(new{state="running",pid=Environment.ProcessId,updatedUtc=DateTime.UtcNow.AddSeconds(-10),snapshot=sample with{Hardware=extendedHw}}));
+Check(DraftPreview.Render(draftPath,draftStatus).Length>0,"stale telemetry still renders unavailable layout");
+Check(DraftPreview.Render(draftPath,draftStatus+"-missing").Length>0,"offline draft renders without USB");
+Console.WriteLine($"FINAL DRAFT: {checks} checks passed.");

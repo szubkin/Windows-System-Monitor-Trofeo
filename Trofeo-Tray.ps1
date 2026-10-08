@@ -10,6 +10,7 @@ Add-Type -AssemblyName System.Drawing
 $script:nextCleanup = [DateTime]::MinValue
 [System.Windows.Forms.Application]::EnableVisualStyles()
 $script:pending = ''
+$script:exitRequested = $null
 $script:child = $null
 $script:deadline = [DateTime]::MinValue
 $script:sessionId = (Get-Process -Id $PID).SessionId
@@ -46,7 +47,7 @@ $icon.Text = 'Trofeo'
 . (Join-Path $PSScriptRoot 'Ui-Theme.ps1')
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
 [TrofeoUi.DarkTheme]::Menu($menu)
-$status = $menu.Items.Add('Trofeo v0.1.0')
+$status = $menu.Items.Add('Trofeo v0.1.7')
 $status.Enabled = $false
 [void]$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
 $start = $menu.Items.Add('Запустить')
@@ -54,25 +55,16 @@ $stop = $menu.Items.Add('Остановить')
 $restart = $menu.Items.Add('Перезапустить')
 [void]$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
 $auto = $menu.Items.Add('Автозапуск при входе')
-$previewItem=$menu.Items.Add('Предпросмотр и статус...')
-$script:previewWindow=$null
-$previewItem.add_Click({
-    try {
-        if(!$script:previewWindow -or $script:previewWindow.IsDisposed){$script:previewWindow=New-TrofeoPreview}
-        $script:previewWindow.Show();$script:previewWindow.Activate()
-    } catch {Show-Failure $_.Exception.Message}
-})
-$settingsItem = $menu.Items.Add('Настройки...')
+$settingsItem = $menu.Items.Add('Настройки и предпросмотр...')
 $settingsItem.add_Click({
     if ($script:pending) { return }
-    $timer.Stop()
     $dialog=$null
     try {
-        $dialog=New-TrofeoSettingsForm
-        if($dialog.ShowDialog() -eq 'OK') {
+        $dialog=New-TrofeoSettingsForm -OnApplied {
             $script:nextCleanup=[DateTime]::MinValue
-            if(@(Get-Monitors).Count -gt 0 -or ($script:child -and !$script:child.HasExited)) { Request-Stop 'restart' }
+            if(!$script:pending -and (@(Get-Monitors).Count -gt 0 -or ($script:child -and !$script:child.HasExited))) { Request-Stop 'restart' }
         }
+        [void]$dialog.ShowDialog()
     } catch { Show-Failure $_.Exception.Message }
     finally { if($dialog){$dialog.Dispose()};$timer.Start() }
 })
@@ -92,6 +84,7 @@ $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 1000
 $tick = {
     try {
+        if($script:exitRequested -and $script:exitRequested.WaitOne(0) -and $script:pending -ne 'exit'){Request-Stop 'exit'}
         if(!$SelfTest -and [DateTime]::UtcNow -ge $script:nextCleanup) {
             $script:nextCleanup=[DateTime]::UtcNow.AddHours(1)
             try {
@@ -126,7 +119,7 @@ $tick = {
         if ($script:pending) { $text='Остановка...' }
         $icon.Icon = $stateIcons[$state]
         $icon.Text = 'Trofeo: ' + $text
-        $status.Text = 'v0.1.0 — ' + $text
+        $status.Text = 'v0.1.7 — ' + $text
         $start.Enabled = !$running -and !$launching -and !$script:pending
         $stop.Enabled = ($running -or $launching) -and !$script:pending
         $restart.Enabled = !$script:pending
@@ -134,7 +127,7 @@ $tick = {
 }
 $timer.add_Tick($tick)
 if ($SelfTest) {
-    if ($menu.Items.Count -ne 11 -or $icon.Text -ne 'Trofeo') { throw 'Tray construction failed' }
+    if ($menu.Items.Count -ne 10 -or $icon.Text -ne 'Trofeo') { throw 'Tray construction failed' }
     $script:fakeRunning = $true
     $script:starts = 0
     function Get-Monitors { if ($script:fakeRunning) { @([pscustomobject]@{ Id=123 }) } else { @() } }
@@ -157,6 +150,7 @@ if ($SelfTest) {
     Write-Output 'PASS: tray and menu created without launching monitor or changing autostart.'
     exit
 }
+$script:exitRequested = New-Object System.Threading.EventWaitHandle($false,[System.Threading.EventResetMode]::ManualReset,'Local\TrofeoExit')
 $mutex = New-Object System.Threading.Mutex($false,'Local\TrofeoTray')
 $owned = $false
 try {
@@ -173,5 +167,5 @@ finally {
     if($script:previewWindow -and !$script:previewWindow.IsDisposed){$script:previewWindow.Close();$script:previewWindow.Dispose()}
     $timer.Stop(); $timer.Dispose(); $icon.Visible=$false; $icon.Dispose(); $menu.Dispose(); foreach ($item in $stateIcons.Values) { $item.Dispose() }
     if ($owned) { $mutex.ReleaseMutex() }
-    $mutex.Dispose()
+    $mutex.Dispose();$script:exitRequested.Dispose()
 }

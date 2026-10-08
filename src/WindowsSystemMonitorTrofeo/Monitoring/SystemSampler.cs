@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 namespace WindowsSystemMonitorTrofeo.Monitoring;
 
 public sealed record Snapshot(double? Cpu, double? MemoryPercent, double? UsedGiB, double? TotalGiB,
-    double? ReceiveBytes, double? SendBytes, double? DiskUsedPercent, double? DiskFreeGiB, string DiskName, HardwareSnapshot? Hardware = null, HistoryPoint[]? History = null);
+    double? ReceiveBytes, double? SendBytes, double? DiskUsedPercent, double? DiskFreeGiB, string DiskName, HardwareSnapshot? Hardware = null, HistoryPoint[]? History = null, string? MemoryName = null, string? NetworkName = null);
 
 public sealed class SystemSampler : IDisposable
 {
@@ -60,12 +60,14 @@ public sealed class SystemSampler : IDisposable
         var memory = new MemoryStatus { Length = (uint)Marshal.SizeOf<MemoryStatus>() };
         bool memoryOk = GlobalMemoryStatusEx(ref memory) && memory.TotalPhysical > 0;
         double? rx = null, tx = null;
+        string networkName = networkId == null ? "Все активные адаптеры" : "Адаптер недоступен";
         var current = new Dictionary<string, (long rx, long tx)>();
         try
         {
             foreach (var adapter in NetworkInterface.GetAllNetworkInterfaces())
             {
                 if (networkId != null && !adapter.Id.Equals(networkId, StringComparison.OrdinalIgnoreCase)) continue;
+                if (networkId != null) networkName = adapter.Name;
                 if (adapter.OperationalStatus != OperationalStatus.Up || adapter.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
                 try
                 {
@@ -99,7 +101,7 @@ public sealed class SystemSampler : IDisposable
         previousTime = now;
         var currentSample = new Snapshot(cpu, memoryOk ? 100.0 * (memory.TotalPhysical - memory.AvailablePhysical) / memory.TotalPhysical : null,
             memoryOk ? (memory.TotalPhysical - memory.AvailablePhysical) / 1073741824.0 : null,
-            memoryOk ? memory.TotalPhysical / 1073741824.0 : null, rx, tx, diskPercent, diskFree, diskName, hardware?.Read());
+            memoryOk ? memory.TotalPhysical / 1073741824.0 : null, rx, tx, diskPercent, diskFree, diskName, hardware?.Read(), MemoryName: MachineIdentity.MemoryName, NetworkName: networkName);
         return cached = currentSample with { History = history.Add(now, currentSample) };
     }
 }

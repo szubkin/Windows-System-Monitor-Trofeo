@@ -12,13 +12,14 @@ public sealed class MonitorStatus(string? path)
     private double lastSeconds, fps;
     private int connections, lastRotation;
     private bool connected;
+    private Monitoring.Snapshot? telemetry;
     private string? lastError;
     private DateTime? lastErrorUtc, previewUtc;
     public void Error(string message) { lastError = message; lastErrorUtc = DateTime.UtcNow; }
-    public void Frame(byte[] jpeg, int rotation)
+    public void Frame(byte[] jpeg, int rotation, Monitoring.Snapshot? snapshot = null)
     {
         if (!connected) { connected = true; connections++; }
-        frames++; lastRotation = rotation;
+        frames++; lastRotation = rotation; telemetry = snapshot;
         Report("running", jpeg, rotation);
     }
     public void Report(string next, byte[]? jpeg = null, int rotation = 0)
@@ -37,7 +38,8 @@ public sealed class MonitorStatus(string? path)
             Directory.CreateDirectory(folder);
             string previewName = $"monitor-preview-{Environment.ProcessId}.jpg";
             var request = Path.Combine(folder, "preview-request");
-            if (jpeg != null && File.Exists(request) && now - File.GetLastWriteTimeUtc(request) < TimeSpan.FromSeconds(5))
+            bool requested = File.Exists(request) && now - File.GetLastWriteTimeUtc(request) < TimeSpan.FromSeconds(5);
+            if (jpeg != null && requested)
             {
                 string previewPath = Path.Combine(folder, previewName);
                 File.WriteAllBytes(previewPath + ".tmp", jpeg);
@@ -48,7 +50,7 @@ public sealed class MonitorStatus(string? path)
             File.WriteAllText(temp, JsonSerializer.Serialize(new {
                 state, pid = Environment.ProcessId, updatedUtc = now, startedUtc,
                 uptimeSeconds = seconds, frames, fps, reconnects = Math.Max(0, connections - 1),
-                lastError, lastErrorUtc, previewUtc, previewFile = previewName, rotation = lastRotation
+                lastError, lastErrorUtc, previewUtc, previewFile = previewName, rotation = lastRotation, snapshot = requested && next == "running" ? telemetry : null
             }));
             File.Move(temp, path, true);
             lastWrite = now; lastFrames = frames; lastSeconds = seconds;

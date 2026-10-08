@@ -11,8 +11,8 @@ try {
     $settings = Read-TrofeoSettings (Join-Path $PSScriptRoot 'trofeo-settings.json')
     . (Join-Path $PSScriptRoot 'Log-Retention.ps1')
     try { Clear-TrofeoLogs $PSScriptRoot $settings.LogDays $settings.LogMaxMiB @((Get-Process).Id) } catch { Write-Warning $_.Exception.Message }
-    $exe = Join-Path $PSScriptRoot 'artifacts\v0.1.0\WindowsSystemMonitorTrofeo.exe'
-    if (!(Test-Path -LiteralPath $exe)) { throw 'v0.1.0 executable is missing. Run Trofeo-Setup-0.1.0.exe first.' }
+    $exe = Join-Path $PSScriptRoot 'artifacts\v0.1.7\WindowsSystemMonitorTrofeo.exe'
+    if (!(Test-Path -LiteralPath $exe)) { throw 'v0.1.7 executable is missing. Run Trofeo-Setup-0.1.7.exe first.' }
     $runFolder = Join-Path $PSScriptRoot ('logs\daily-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff') + '-' + $PID)
     $launchArgs = @(Get-TrofeoArguments $settings $Mode $runFolder $PSScriptRoot)
     if (!$Background) { $Host.UI.RawUI.WindowTitle = "Trofeo - $Mode - Ctrl+C to stop" }

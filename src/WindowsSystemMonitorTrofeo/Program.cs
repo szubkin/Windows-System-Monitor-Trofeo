@@ -6,10 +6,12 @@ using WindowsSystemMonitorTrofeo.Usb;
 using WindowsSystemMonitorTrofeo.Rendering;
 using WindowsSystemMonitorTrofeo.Monitoring;
 
+if(args.Length == 4 && args[0] == "--settings-preview-worker" && int.TryParse(args[3],out var previewParent))
+    return DraftPreview.Run(args[1],args[2],previewParent);
 Console.OutputEncoding = Encoding.UTF8;
 if (args.Length == 0 || args.Contains("--help"))
 {
-    Console.WriteLine("Windows System Monitor Trofeo 0.1.0\nUsage: --list | --probe | --test-pattern | --demo | --monitor | --monitor-preview | --preview | --check-runtime\nOptions: --device <instance-id> --timeout-ms 3000 --log-dir <folder> --rotation 0|180 --hold-seconds 0..3600 --fps 1..10 --reset-pipes --continuous --recover --verbose\nCompact log is default (errors and final summary only; progress JSON updated each minute); --verbose enables hex dumps. --continuous runs until Ctrl+C and excludes --hold-seconds.\nSensors: --cpu-sensors (LibreHardwareMonitor CPU temperatures; requires PawnIO and may require administrator). NVIDIA GPU via NVML.\nDiagnostics: --usb-block-size 2048|4096 --block-delay-ms 0..10\n--monitor shows CPU, RAM, network rates and system disk capacity; --monitor-preview saves live data without USB. --demo shows a moving marker, clock and frame counter. --test-pattern holds a static image. Default 60s, target cap 4 FPS, USB 2048-byte blocks + 1ms pause (measured ~1.26 FPS); Ctrl+C stops BETWEEN complete frames. Close TRCC first.\n--preview saves a static test image without USB. Rotation follows panel SUB (preview: 180).\nExit: 0 completed/cancelled, 2 arguments, 3 not found, 4 ambiguous, 5 driver/profile, 6 native/I/O error, 7 invalid handshake. See summary JSON for cancellation/failure details.");
+    Console.WriteLine("Windows System Monitor Trofeo 0.1.7\nUsage: --list | --probe | --test-pattern | --demo | --monitor | --monitor-preview | --preview | --check-runtime\nOptions: --device <instance-id> --timeout-ms 3000 --log-dir <folder> --rotation 0|180 --hold-seconds 0..3600 --fps 1..10 --reset-pipes --continuous --recover --verbose\nCompact log is default (errors and final summary only; progress JSON updated each minute); --verbose enables hex dumps. --continuous runs until Ctrl+C and excludes --hold-seconds.\nDisplay: --display-blocks CPU,GPU,MEMORY,NETWORK,DISK --accent-color #44E2C6 --text-percent 90..110 --cpu-metric load|temperature|clock --gpu-metric load|temperature|vram --hide-graphs --hide-device-names\nSensors: --cpu-sensors (LibreHardwareMonitor CPU temperatures; requires PawnIO and may require administrator). NVIDIA GPU via NVML.\nDiagnostics: --usb-block-size 2048|4096 --block-delay-ms 0..10\n--monitor shows CPU, RAM, network rates and system disk capacity; --monitor-preview saves live data without USB. --demo shows a moving marker, clock and frame counter. --test-pattern holds a static image. Default 60s, target cap 4 FPS, USB 2048-byte blocks + 1ms pause (measured ~1.26 FPS); Ctrl+C stops BETWEEN complete frames. Close TRCC first.\n--preview saves a static test image without USB. Rotation follows panel SUB (preview: 180).\nExit: 0 completed/cancelled, 2 arguments, 3 not found, 4 ambiguous, 5 driver/profile, 6 native/I/O error, 7 invalid handshake. See summary JSON for cancellation/failure details.");
     return 0;
 }
 string? selected = null, statusFile = null, networkId = null, driveRoot = null;
@@ -18,6 +20,7 @@ uint timeout = 3000;
 bool probe = false, list = false, pattern = false, preview = false, recover = false;
 int? rotation = null;
 var thresholds = new TemperatureThresholds();
+var display = new DisplayOptions();
 int holdSeconds = 60;
 bool holdSpecified = false;
 bool resetPipes = false;
@@ -30,6 +33,13 @@ try
     for (int i = 0; i < args.Length; i++)
         switch (args[i])
         {
+            case "--display-blocks": display = display with { Blocks = args[++i] }; break;
+            case "--accent-color": display = display with { Accent = args[++i] }; break;
+            case "--text-percent": display = display with { TextPercent = int.Parse(args[++i]) }; break;
+            case "--cpu-metric": display = display with { CpuMetric = args[++i] }; break;
+            case "--gpu-metric": display = display with { GpuMetric = args[++i] }; break;
+            case "--hide-graphs": display = display with { Graphs = false }; break;
+            case "--hide-device-names": display = display with { DeviceNames = false }; break;
             case "--cpu-yellow": thresholds = thresholds with { CpuYellow = int.Parse(args[++i]) }; break;
             case "--cpu-red": thresholds = thresholds with { CpuRed = int.Parse(args[++i]) }; break;
             case "--gpu-yellow": thresholds = thresholds with { GpuYellow = int.Parse(args[++i]) }; break;
@@ -62,7 +72,7 @@ try
         }
     if (new[] { probe, list, pattern, demo, preview, monitor, monitorPreview, checkRuntime }.Count(x => x) != 1 || timeout < 100 || timeout > 30000)
         throw new ArgumentException("Choose one mode; timeout range 100..30000 ms.");
-    thresholds.Validate();
+    thresholds.Validate(); display.Validate();
     if ((networkId != null || driveRoot != null) && !monitor && !monitorPreview) throw new ArgumentException("Network/drive selection requires monitor mode.");
     if (driveRoot != null && !System.Text.RegularExpressions.Regex.IsMatch(driveRoot, @"^[A-Za-z]:\\$")) throw new ArgumentException("Drive must be a root such as C:\\");
     if (statusFile != null && (!monitor || !continuous)) throw new ArgumentException("--status-file requires --monitor --continuous.");
@@ -128,7 +138,7 @@ try
     }
     try
     {
-        Log($"Windows System Monitor Trofeo v0.1.0; OS={Environment.OSVersion}; .NET={Environment.Version}; 64bit={Environment.Is64BitProcess}; PID={Environment.ProcessId}; mode={(checkRuntime ? "check-runtime" : monitor ? "monitor" : monitorPreview ? "monitor-preview" : demo ? "demo" : pattern ? "test-pattern" : preview ? "preview" : probe ? "probe" : "list")}");
+        Log($"Windows System Monitor Trofeo v0.1.7; OS={Environment.OSVersion}; .NET={Environment.Version}; 64bit={Environment.Is64BitProcess}; PID={Environment.ProcessId}; mode={(checkRuntime ? "check-runtime" : monitor ? "monitor" : monitorPreview ? "monitor-preview" : demo ? "demo" : pattern ? "test-pattern" : preview ? "preview" : probe ? "probe" : "list")}");
         Log($"Log: {stem}.log");
         if (checkRuntime)
         {
@@ -142,7 +152,7 @@ try
         }
         if (cpuSensors) Log("CPU sensor context: elevated=" + new System.Security.Principal.WindowsPrincipal(System.Security.Principal.WindowsIdentity.GetCurrent()).IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator) + "; PawnIO=" + LibreHardwareMonitor.PawnIo.PawnIo.Version);
 
-        if (monitorPreview) { sampler.Read(); Thread.Sleep(2500); var data = sampler.Read(); File.WriteAllBytes(stem + "-wire.jpg", Dashboard.Create(data, stem + "-preview.png", rotation ?? 180, thresholds)); Log(System.Text.Json.JsonSerializer.Serialize(data)); Log("Monitor preview saved; USB not accessed."); return 0; }
+        if (monitorPreview) { sampler.Read(); Thread.Sleep(2500); var data = sampler.Read(); File.WriteAllBytes(stem + "-wire.jpg", Dashboard.Create(data, stem + "-preview.png", rotation ?? 180, thresholds, display)); Log(System.Text.Json.JsonSerializer.Serialize(data)); Log("Monitor preview saved; USB not accessed."); return 0; }
         if (preview) { Render(rotation ?? 180); Log("Preview saved; USB not accessed."); return 0; }
         var devices = DeviceDiscovery.Find(Log);
         if (selected != null) devices = devices.Where(d => d.InstanceId.Equals(selected, StringComparison.OrdinalIgnoreCase)).ToList();
@@ -176,7 +186,11 @@ try
             if (pm != 65 && pm != 66) { Log($"Unsupported panel PM={pm}, SUB={sub}; no image sent."); return 5; }
             int angle = rotation ?? (sub is 2 or 3 or 4 ? 0 : 180);
             Log($"Panel profile PM={pm}, SUB={sub}: test canvas 1920x462, rotation={angle}");
-            byte[] RenderLive(string? path) => Dashboard.Create(sampler.Read(), path, angle, thresholds);
+            Snapshot? currentSnapshot = null;
+            byte[] RenderLive(string? path) {
+                currentSnapshot = sampler.Read();
+                return Dashboard.Create(currentSnapshot, path, angle, thresholds, display);
+            }
             var jpeg = monitor ? RenderLive(stem + "-preview.png") : TestPattern.Create(stem + "-preview.png", angle, demo ? 1 : null, 0);
             File.WriteAllBytes(stem + "-first.jpg", jpeg);
             var frame = LyFrame.Pack(jpeg);
@@ -228,7 +242,7 @@ try
                 maxTransferMs = Math.Max(maxTransferMs, transferTime.Elapsed.TotalMilliseconds);
                 lastAck = receipt.Ack;
                 totalBytes += receipt.Bytes;
-                frameNumber++; lastFrameUtc = DateTime.UtcNow; liveStatus.Frame(jpeg, angle);
+                frameNumber++; lastFrameUtc = DateTime.UtcNow; liveStatus.Frame(jpeg, angle, currentSnapshot);
                 if (frameNumber == 1) { Dump("FRAME ACK", receipt.Ack); if (recover) Log("SESSION connected: frames flowing."); }
                 metrics.Frame(sessionTime.Elapsed.TotalMilliseconds);
                 if (monitor && sessionTime.Elapsed.TotalSeconds >= nextSensorCheck)
@@ -259,7 +273,7 @@ try
 
                 if (lastAck != null) File.WriteAllBytes(stem + "-frame-ack.bin", lastAck);
                 File.WriteAllBytes(stem + "-last.jpg", jpeg);
-                var summary = new { version = "0.1.0", mode = monitor ? "monitor" : demo ? "demo" : "test-pattern", outcome, failure,
+                var summary = new { version = "0.1.7", mode = monitor ? "monitor" : demo ? "demo" : "test-pattern", outcome, failure,
                     completedFrames = frameNumber, elapsedSeconds = sessionTime.Elapsed.TotalSeconds, targetFps = fps, usbBlockSize, blockDelayMs,
                     averageFps = frameNumber / Math.Max(0.001, sessionTime.Elapsed.TotalSeconds), totalBytes, maxTransferMs, maxRenderMs, continuous, requestedSeconds = continuous ? (int?)null : holdSeconds, metrics, lastSensors };
                 File.WriteAllText(stem + "-summary.json", System.Text.Json.JsonSerializer.Serialize(summary, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));

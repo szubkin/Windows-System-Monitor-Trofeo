@@ -1,8 +1,12 @@
-# Windows System Monitor Trofeo 0.1.0
+# Windows System Monitor Trofeo 0.1.7
 
 Windows x64 / .NET 8 live display monitor. Existing Microsoft WINUSB and Windows System Monitor 0.2 are unchanged.
 
 ## Install and launch
+
+Settings and connection preview now share one window without tabs: proportional preview above the scrollable settings, connection status above the bottom buttons. Appearance changes render a private draft using current telemetry; only Apply saves settings and updates Trofeo. A separate hidden renderer never opens USB.
+
+The next test build is **v0.1.7**: Settings → Screen controls visible equal-width blocks, accent color, text size, CPU/GPU primary readings, graphs and hardware names. Install using Trofeo-Setup-0.1.7.exe; the installer automatically stops the existing monitor before updating; older settings receive appearance defaults.
 
 The main release is **v0.1.0**, promoted from the user-verified v0.0.20 recovery fix. v0.0.19 remains archived as a previous release. Close Trofeo through Exit in the tray, run `Trofeo-Setup-0.1.0.exe`, choose the existing installation folder, then open Trofeo Monitor. The self-contained Windows x64 installer includes .NET 8 and preserves existing settings. Historical PowerShell installers below are retained for reference.
 

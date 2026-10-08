@@ -129,3 +129,35 @@ Observed installed logs on 8 October: at 09:51:46 OUT failed with native 1167; a
 On 8 October the user reported that the v0.0.20 sleep/wake test worked. Promoted the same behavior to v0.1.0 at the user's request. Updated executable, tray, launch paths and setup version identifiers. Sleep recovery is user-confirmed for v0.0.20; this release promotion does not change recovery logic. Earlier pending-verification entries describe the state at those earlier checkpoints.
 
 Установщик 0.1.0: чистая установка и повторное обновление с сохранением настроек прошли; встроенная .NET, SelfTest трея, 6 проверок запуска и 8 проверок состояния прошли.
+
+## v0.1.1 — screen settings (8 October 2026)
+
+125 C# checks passed, including all 31 nonempty block combinations, missing telemetry, accent colors, hidden graphs, text bounds and invalid display options. Settings round trip/import/export and launch forwarding checks passed. The isolated settings UI test verifies both tabs, rejects zero visible blocks, restores defaults and saves custom appearance. The self-contained installer passed clean installation, packaged runtime and tray SelfTest, and reinstall preserved custom display settings. Screenshot QA completed for general/screen settings and five/two/single block dashboards. No physical USB transfer was performed for this update; user verification on Trofeo remains pending.
+
+## v0.1.2 — settings and installation
+
+Settings window tests passed at 100% and simulated 150% scale: appearance labels never intersect inputs, invalid selections are rejected, repeated Apply persists and invokes its callback without closing, and Close closes separately. Successful compilation and isolated installation with packaged runtime/tray SelfTest passed. Interactive post-install launch prompt is implemented through the existing hidden launcher; real launch verification is pending.
+
+## v0.1.3 — visual alignment
+
+125 program checks passed. Settings tests at 100% and simulated 150% verify a painted color swatch and equal footer button sizes/positions. Screenshot QA completed for load, temperature and CPU clock with secondary values sharing the baseline and card edges. Isolated installer, packaged runtime and tray SelfTest passed. Physical Trofeo verification pending.
+
+## v0.1.4 — spacing
+
+125 program checks passed; isolated settings UI test at simulated 150% passed. Screenshots reviewed: lower readings remain clear of charts and settings buttons visually form two groups. Self-contained installer built. Physical verification pending.
+
+## v0.1.5 — integrated preview
+
+129 C# checks passed, including draft rendering, immutable live status, missing/stale telemetry. The integrated settings test proves image changes while applied settings remain unchanged, Apply saves and notifies the tray while staying open, the renderer has a distinct process name, and closing the window stops it. The 150% UI test and packaged tray SelfTest passed. Mock telemetry was used; no USB monitor was started. Physical Apply verification remains pending.
+
+## v0.1.6 — single-page layout and installer shutdown
+
+100% and simulated 150% UI checks passed: no tabs, proportional top preview, status below settings, aligned footer, Apply and Close. Live preview lifecycle and packaged tray SelfTest passed. Mock installer shutdown waited for monitor safe-stop, terminated only its matching legacy tray and preserved an unrelated host. Mock signals have a separate namespace from TrofeoStop/TrofeoExit. Physical installer shutdown/update verification pending.
+
+## v0.1.7 — memory and network labels
+
+- 134 protocol, rendering, metadata and draft-preview checks passed. Identical modules deduplicate; unknown configured speeds remain unavailable; mixed modules retain their information; JSON telemetry preserves both labels.
+- Settings window verified at 100% and 150% scale. Status height is 132 logical pixels, with no scrollbar and subdued foreground. Dashboard and settings screenshots inspected.
+- Windows inventory on this PC reports four DDR3 modules configured at 1600. DDR speed is displayed in MT/s. No USB transfer used during validation.
+- Self-contained installer tested in artifacts/setup-check-017; bundled .NET runtime check and live draft-preview/Apply/shutdown checks passed.
+- Physical LCD confirmation after installation is pending. GitHub main/Latest stays unchanged.
