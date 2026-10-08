@@ -1,0 +1,7 @@
+{
+  "Fps": 6,
+  "UsbBlockSize": 4096,
+  "BlockDelayMs": 0,
+  "CpuSensors": true,
+  "StabilitySeconds": 1800
+}

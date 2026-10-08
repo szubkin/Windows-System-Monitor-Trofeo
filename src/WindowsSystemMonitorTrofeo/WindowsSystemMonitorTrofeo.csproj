@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><ApplicationIcon>..\..\assets\trofeo-app.ico</ApplicationIcon>
+    <TargetFramework>net8.0-windows</TargetFramework><RuntimeIdentifier>win-x64</RuntimeIdentifier><SelfContained>false</SelfContained>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PlatformTarget>x64</PlatformTarget>
+    <Version>0.0.19</Version>
+    <AssemblyVersion>0.0.19.0</AssemblyVersion>
+    <FileVersion>0.0.19.0</FileVersion>
+  </PropertyGroup>
+<ItemGroup><PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" /><PackageReference Include="BlackSharp.Core" Version="1.0.7" /></ItemGroup></Project>
+
+
+
+
+
+
+
+
+

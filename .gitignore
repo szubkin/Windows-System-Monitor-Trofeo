@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+artifacts/
+logs/
+.build-home/
+.packages-cache/
+backups/
+*.bak
+*.user
+*.suo

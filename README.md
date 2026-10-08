@@ -71,4 +71,3 @@ Settings: Export saves the current form values to a separate JSON file; Import v
 
 ## v0.0.19 dark settings and tray menu
 Settings uses a graphite background, light text and dark fields/buttons. The tray context menu uses rectangular Windows 10 style, grey selection, separators and a check mark for autostart. The controller uses Windows PowerShell 5.1, as invoked by the shortcut and scheduled task. Exit Trofeo from the tray before opening artifacts/Trofeo-Setup-0.0.19.exe; install into the existing folder, then open Trofeo Monitor. Settings are preserved. Setup closes its window after successful installation.
-
