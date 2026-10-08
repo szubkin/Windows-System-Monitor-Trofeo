@@ -1,17 +1,17 @@
-# Windows System Monitor Trofeo 0.0.19
+# Windows System Monitor Trofeo 0.1.0
 
 Windows x64 / .NET 8 live display monitor. Existing Microsoft WINUSB and Windows System Monitor 0.2 are unchanged.
 
 ## Install and launch
 
-The main baseline is **v0.0.19**. Close Trofeo through Exit in the tray, run `Trofeo-Setup-0.0.19.exe`, choose the existing installation folder, then open Trofeo Monitor. The self-contained Windows x64 installer includes .NET 8 and preserves existing settings. Historical PowerShell installers below are retained for reference.
+The main release is **v0.1.0**, promoted from the user-verified v0.0.20 recovery fix. v0.0.19 remains archived as a previous release. Close Trofeo through Exit in the tray, run `Trofeo-Setup-0.1.0.exe`, choose the existing installation folder, then open Trofeo Monitor. The self-contained Windows x64 installer includes .NET 8 and preserves existing settings. Historical PowerShell installers below are retained for reference.
 
 - Trofeo Monitor.lnk: requests elevation, then runs in the tray without a console window.
 - Trofeo Stability Test.lnk: requests elevation, then runs a 30-minute test and prints PASS or NOT CONFIRMED.
 
 Close TRCC before launching. Use Stop or Exit in the tray to stop gracefully. When using the command-line stability test, Ctrl+C stops between complete frames; closing the console with X can prevent the final report. Autostart is optional. Power settings are unchanged.
 
-Known issue: the user reported that after Windows sleep the tray remains while the display stops updating. The cause is not yet established. v0.0.19 is the chosen development baseline, not a claim that this issue is fixed.
+Sleep recovery: v0.0.19 exited when PnP reported WINUSB with no interface path during resume. v0.1.0 retains the v0.0.20 fix: wait and rediscover the same device with the existing 5–30 second backoff, then open a new WinUSB session. Wrong drivers and multiple interface paths remain terminal; probe/stability modes remain strict. The user confirmed physical sleep/wake recovery with v0.0.20 on 8 October 2026. v0.1.0 changes the release number without changing that recovery behavior.
 
 Settings are in trofeo-settings.json: FPS=6, USB block=4096, pause=0ms, CPU sensors enabled, test duration=1800 seconds. Change StabilitySeconds to 3600 for an hour. Existing settings are preserved by the installer.
 

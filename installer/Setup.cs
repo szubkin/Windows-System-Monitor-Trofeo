@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -16,7 +16,7 @@ class Setup : Form {
     CheckBox desktop = new CheckBox();
     Button install = new Button();
     Label info = new Label();
-    const string Version = "0.0.19";
+    const string Version = "0.1.0";
     [STAThread] static int Main(string[] args) {
         try {
             if(args.Length == 2 && args[0] == "--test-ui") {
@@ -93,7 +93,7 @@ class Setup : Form {
                     using(var input=entry.Open()) using(var output=File.Create(target))input.CopyTo(output);
                 }
             }
-            string exe=Under(root,@"artifacts\v0.0.19\WindowsSystemMonitorTrofeo.exe");
+            string exe=Under(root,@"artifacts\v0.1.0\WindowsSystemMonitorTrofeo.exe");
             var check=Process.Start(new ProcessStartInfo(exe,"--check-runtime") {UseShellExecute=false,CreateNoWindow=true,WorkingDirectory=root});
             if(!check.WaitForExit(15000)){check.Kill();throw new Exception("Проверка .NET не завершилась.");}
             if(check.ExitCode!=0)throw new Exception("Проверка .NET завершилась ошибкой.");

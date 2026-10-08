@@ -1,4 +1,4 @@
-﻿using WindowsSystemMonitorTrofeo;
+using WindowsSystemMonitorTrofeo;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Text;
@@ -9,7 +9,7 @@ using WindowsSystemMonitorTrofeo.Monitoring;
 Console.OutputEncoding = Encoding.UTF8;
 if (args.Length == 0 || args.Contains("--help"))
 {
-    Console.WriteLine("Windows System Monitor Trofeo 0.0.19\nUsage: --list | --probe | --test-pattern | --demo | --monitor | --monitor-preview | --preview | --check-runtime\nOptions: --device <instance-id> --timeout-ms 3000 --log-dir <folder> --rotation 0|180 --hold-seconds 0..3600 --fps 1..10 --reset-pipes --continuous --recover --verbose\nCompact log is default (errors and final summary only; progress JSON updated each minute); --verbose enables hex dumps. --continuous runs until Ctrl+C and excludes --hold-seconds.\nSensors: --cpu-sensors (LibreHardwareMonitor CPU temperatures; requires PawnIO and may require administrator). NVIDIA GPU via NVML.\nDiagnostics: --usb-block-size 2048|4096 --block-delay-ms 0..10\n--monitor shows CPU, RAM, network rates and system disk capacity; --monitor-preview saves live data without USB. --demo shows a moving marker, clock and frame counter. --test-pattern holds a static image. Default 60s, target cap 4 FPS, USB 2048-byte blocks + 1ms pause (measured ~1.26 FPS); Ctrl+C stops BETWEEN complete frames. Close TRCC first.\n--preview saves a static test image without USB. Rotation follows panel SUB (preview: 180).\nExit: 0 completed/cancelled, 2 arguments, 3 not found, 4 ambiguous, 5 driver/profile, 6 native/I/O error, 7 invalid handshake. See summary JSON for cancellation/failure details.");
+    Console.WriteLine("Windows System Monitor Trofeo 0.1.0\nUsage: --list | --probe | --test-pattern | --demo | --monitor | --monitor-preview | --preview | --check-runtime\nOptions: --device <instance-id> --timeout-ms 3000 --log-dir <folder> --rotation 0|180 --hold-seconds 0..3600 --fps 1..10 --reset-pipes --continuous --recover --verbose\nCompact log is default (errors and final summary only; progress JSON updated each minute); --verbose enables hex dumps. --continuous runs until Ctrl+C and excludes --hold-seconds.\nSensors: --cpu-sensors (LibreHardwareMonitor CPU temperatures; requires PawnIO and may require administrator). NVIDIA GPU via NVML.\nDiagnostics: --usb-block-size 2048|4096 --block-delay-ms 0..10\n--monitor shows CPU, RAM, network rates and system disk capacity; --monitor-preview saves live data without USB. --demo shows a moving marker, clock and frame counter. --test-pattern holds a static image. Default 60s, target cap 4 FPS, USB 2048-byte blocks + 1ms pause (measured ~1.26 FPS); Ctrl+C stops BETWEEN complete frames. Close TRCC first.\n--preview saves a static test image without USB. Rotation follows panel SUB (preview: 180).\nExit: 0 completed/cancelled, 2 arguments, 3 not found, 4 ambiguous, 5 driver/profile, 6 native/I/O error, 7 invalid handshake. See summary JSON for cancellation/failure details.");
     return 0;
 }
 string? selected = null, statusFile = null, networkId = null, driveRoot = null;
@@ -128,7 +128,7 @@ try
     }
     try
     {
-        Log($"Windows System Monitor Trofeo v0.0.19; OS={Environment.OSVersion}; .NET={Environment.Version}; 64bit={Environment.Is64BitProcess}; PID={Environment.ProcessId}; mode={(checkRuntime ? "check-runtime" : monitor ? "monitor" : monitorPreview ? "monitor-preview" : demo ? "demo" : pattern ? "test-pattern" : preview ? "preview" : probe ? "probe" : "list")}");
+        Log($"Windows System Monitor Trofeo v0.1.0; OS={Environment.OSVersion}; .NET={Environment.Version}; 64bit={Environment.Is64BitProcess}; PID={Environment.ProcessId}; mode={(checkRuntime ? "check-runtime" : monitor ? "monitor" : monitorPreview ? "monitor-preview" : demo ? "demo" : pattern ? "test-pattern" : preview ? "preview" : probe ? "probe" : "list")}");
         Log($"Log: {stem}.log");
         if (checkRuntime)
         {
@@ -151,8 +151,11 @@ try
         if (devices.Count != 1) { Log("Multiple devices: select one using --device <instance-id>."); return 4; }
         var device = devices[0];
         if (recover) selected ??= device.InstanceId;
-        if (!device.Service.Equals("WINUSB", StringComparison.OrdinalIgnoreCase) || device.Paths.Count != 1)
-        { Log($"Cannot probe: Service={device.Service}, path count={device.Paths.Count}; expected WINUSB and one interface. Driver unchanged."); return 5; }
+        int interfaceResult = RecoveryPolicy.InterfaceResult(device.Service, device.Paths.Count, recover);
+        if (interfaceResult == 9)
+        { Log("NOT FOUND: WinUSB device interface is not ready; waiting for Windows to restore USB after resume/disconnect. Driver unchanged."); return 9; }
+        if (interfaceResult != 0)
+        { Log($"Cannot probe: Service={device.Service}, path count={device.Paths.Count}; expected WINUSB and one interface. Driver unchanged."); return interfaceResult; }
         using var inputMode = new ConsoleInputMode();
         using var lease = new DeviceLease(device.InstanceId);
         using var usb = new WinUsbTransport(device.Paths[0], timeout, Log);
@@ -256,7 +259,7 @@ try
 
                 if (lastAck != null) File.WriteAllBytes(stem + "-frame-ack.bin", lastAck);
                 File.WriteAllBytes(stem + "-last.jpg", jpeg);
-                var summary = new { version = "0.0.19", mode = monitor ? "monitor" : demo ? "demo" : "test-pattern", outcome, failure,
+                var summary = new { version = "0.1.0", mode = monitor ? "monitor" : demo ? "demo" : "test-pattern", outcome, failure,
                     completedFrames = frameNumber, elapsedSeconds = sessionTime.Elapsed.TotalSeconds, targetFps = fps, usbBlockSize, blockDelayMs,
                     averageFps = frameNumber / Math.Max(0.001, sessionTime.Elapsed.TotalSeconds), totalBytes, maxTransferMs, maxRenderMs, continuous, requestedSeconds = continuous ? (int?)null : holdSeconds, metrics, lastSensors };
                 File.WriteAllText(stem + "-summary.json", System.Text.Json.JsonSerializer.Serialize(summary, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));

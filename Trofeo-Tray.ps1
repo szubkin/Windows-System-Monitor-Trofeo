@@ -46,7 +46,7 @@ $icon.Text = 'Trofeo'
 . (Join-Path $PSScriptRoot 'Ui-Theme.ps1')
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
 [TrofeoUi.DarkTheme]::Menu($menu)
-$status = $menu.Items.Add('Trofeo v0.0.19')
+$status = $menu.Items.Add('Trofeo v0.1.0')
 $status.Enabled = $false
 [void]$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
 $start = $menu.Items.Add('Запустить')
@@ -126,7 +126,7 @@ $tick = {
         if ($script:pending) { $text='Остановка...' }
         $icon.Icon = $stateIcons[$state]
         $icon.Text = 'Trofeo: ' + $text
-        $status.Text = 'v0.0.19 — ' + $text
+        $status.Text = 'v0.1.0 — ' + $text
         $start.Enabled = !$running -and !$launching -and !$script:pending
         $stop.Enabled = ($running -or $launching) -and !$script:pending
         $restart.Enabled = !$script:pending

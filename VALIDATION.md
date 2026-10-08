@@ -121,3 +121,11 @@ Self-contained win-x64 payload includes .NET 8.0.31; native .NET Framework boots
 
 ## v0.0.19 dark UI
 Settings form and Windows 10 style tray menu rendered and visually inspected under Windows PowerShell 5.1. Settings UI reset/Apply passed in an isolated copy without changing production settings or autostart. Six launcher and eight tray-state checks passed. Clean setup and repeat update preserved a custom settings hash; packaged theme and embedded .NET runtime verified. Setup success now closes the form (code change). The user reports the tray remains after sleep while the screen stops updating; this recovery issue has not been reproduced or fixed by this UI release. Live status at 09:01 on 8 October showed fresh running telemetry, 5.78 FPS and no recorded reconnect/error.
+
+## v0.0.20 resume interface recovery
+Observed installed logs on 8 October: at 09:51:46 OUT failed with native 1167; at 09:51:51 discovery found WINUSB with zero interface paths and exited with terminal code 5. Added narrow classification of WINUSB/zero paths as retryable code 9 only with recovery enabled. No interface is opened until exactly one path is present; discovery is repeated, handles are recreated and the driver is unchanged. Regression simulates two missing-interface attempts followed by a ready interface, verifies 5/10 second waits, strict non-recovery mode, wrong-driver and ambiguous-path failures. 84 C# checks, six launcher and eight tray-state checks passed. Physical sleep/wake verification pending installation of v0.0.20; v0.0.19 baseline retained.
+
+## v0.1.0 main release promotion
+On 8 October the user reported that the v0.0.20 sleep/wake test worked. Promoted the same behavior to v0.1.0 at the user's request. Updated executable, tray, launch paths and setup version identifiers. Sleep recovery is user-confirmed for v0.0.20; this release promotion does not change recovery logic. Earlier pending-verification entries describe the state at those earlier checkpoints.
+
+Установщик 0.1.0: чистая установка и повторное обновление с сохранением настроек прошли; встроенная .NET, SelfTest трея, 6 проверок запуска и 8 проверок состояния прошли.
