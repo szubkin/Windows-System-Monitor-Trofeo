@@ -11,8 +11,8 @@ if ($Action -eq 'Status') { Get-ScheduledTask -TaskName $name -ErrorAction Silen
 $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 if (!$principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Run this command from an administrator PowerShell.' }
 if ($Action -eq 'Disable') { Unregister-ScheduledTask -TaskName $name -Confirm:$false -ErrorAction SilentlyContinue; Write-Host 'Autostart removed. Use -Action Stop to stop the current monitor.'; exit }
-$exe = Join-Path $PSScriptRoot 'artifacts\v0.1.7\WindowsSystemMonitorTrofeo.exe'
-if (!(Test-Path -LiteralPath $exe)) { throw 'Install v0.1.7 first.' }
+$exe = Join-Path $PSScriptRoot 'artifacts\v0.2.0\WindowsSystemMonitorTrofeo.exe'
+if (!(Test-Path -LiteralPath $exe)) { throw 'Install v0.2.0 first.' }
 $user = [Security.Principal.WindowsIdentity]::GetCurrent().Name
 $taskAction = New-ScheduledTaskAction -Execute "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$PSScriptRoot\Trofeo-Tray.ps1`"" -WorkingDirectory $PSScriptRoot
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $user

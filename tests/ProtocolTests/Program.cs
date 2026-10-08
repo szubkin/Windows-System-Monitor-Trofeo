@@ -291,3 +291,47 @@ File.WriteAllText(draftStatus,System.Text.Json.JsonSerializer.Serialize(new{stat
 Check(DraftPreview.Render(draftPath,draftStatus).Length>0,"stale telemetry still renders unavailable layout");
 Check(DraftPreview.Render(draftPath,draftStatus+"-missing").Length>0,"offline draft renders without USB");
 Console.WriteLine($"FINAL DRAFT: {checks} checks passed.");
+
+var englishFrame=Dashboard.Create(labeledSample,"artifacts/qa/dashboard-en.png",0,display:new DisplayOptions(Language:"en"));
+var russianFrame=Dashboard.Create(labeledSample,"artifacts/qa/dashboard-ru.png",0,display:new DisplayOptions(Language:"ru"));
+Check(!englishFrame.SequenceEqual(russianFrame),"Russian and English dashboards render distinct translated frames");
+Check(englishFrame.Length<LyFrame.MaxJpegBytes && russianFrame.Length<LyFrame.MaxJpegBytes,"both dashboard languages fit the USB payload");
+bool badLanguage=false;try{new DisplayOptions(Language:"de").Validate();}catch(ArgumentException){badLanguage=true;}
+Check(badLanguage,"unsupported display language rejected");
+draftSettings["Language"]="en";File.WriteAllText(draftPath,System.Text.Json.JsonSerializer.Serialize(draftSettings));
+Check(DraftPreview.Render(draftPath,draftStatus+"-missing").Length>0,"English draft previews offline without USB");
+Console.WriteLine($"FINAL LANGUAGE: {checks} checks passed.");
+
+Check(HardwareSampler.SelectCpuPower(new[]{("CPU Core", (double?)99),("CPU Package",(double?)42),("CPU PPT",(double?)50)})==42,"package power wins without summing cores");
+Check(HardwareSampler.SelectCpuPower(new[]{("CPU Package",(double?)double.NaN),("CPU PPT",(double?)50)})==50,"invalid power falls back to valid PPT");
+Check(HardwareSampler.SelectCpuFan(new[]{("Fan #1",(double?)1200),("CPU Fan",(double?)0)})==0,"only explicitly named CPU fan accepted including stopped fan");
+Check(HardwareSampler.SelectCpuFan(new[]{("Fan #1",(double?)1200)})==null,"generic motherboard fan not mislabeled CPU");
+var sensorSample=labeledSample with{Hardware=extendedHw with{CpuPowerWatts=85,GpuPowerWatts=190,CpuFanRpm=1234,GpuFanRpm=1600,GpuFanPercent=45}};
+foreach(var theme in new[]{"dark","light"}){
+    foreach(var lang in new[]{"ru","en"}){
+        var frame=Dashboard.Create(sensorSample,"artifacts/qa/dashboard-"+theme+"-"+lang+".png",0,display:new DisplayOptions(Theme:theme,Language:lang,CpuSecondaryRight:"power",GpuSecondaryLeft:"power",GpuSecondaryRight:"fan"));
+        Check(frame.Length<LyFrame.MaxJpegBytes,"theme and sensors fit JPEG payload");
+    }
+}
+using(var lightBmp=new System.Drawing.Bitmap("artifacts/qa/dashboard-light-ru.png")){
+    Check(lightBmp.GetPixel(0,0).ToArgb()==System.Drawing.Color.FromArgb(237,242,246).ToArgb(),"light palette background applied");
+    Check(lightBmp.GetPixel(40,85).ToArgb()==System.Drawing.Color.White.ToArgb(),"light palette cards applied");
+}
+foreach(var metric in new[]{"power","fan"}){
+    Check(Dashboard.Create(sensorSample,null,0,display:new DisplayOptions(CpuMetric:metric,GpuMetric:metric,CpuSecondaryLeft:"none",GpuSecondaryRight:"none")).Length>0,"new main readings render with hidden secondary slots");
+    Check(Dashboard.Create(sample with{Hardware=null},null,0,display:new DisplayOptions(CpuMetric:metric,GpuMetric:metric,Theme:"light")).Length>0,"missing new sensors render safely");
+}
+foreach(var invalid in new[]{new DisplayOptions(Theme:"bad"),new DisplayOptions(CpuSecondaryLeft:"vram"),new DisplayOptions(GpuSecondaryRight:"clock")}){
+    bool rejected=false;try{invalid.Validate();}catch(ArgumentException){rejected=true;}Check(rejected,"invalid theme or secondary rejected");
+}
+var now=DateTime.UtcNow;
+var report=WindowsSystemMonitorTrofeo.DiagnosticReport.Build(System.Text.Json.JsonSerializer.Serialize(new{state="running",pid=123,updatedUtc=now,frames=12,lastError="test error",snapshot=sensorSample}),new[]{new WindowsSystemMonitorTrofeo.UsbSummary("WINUSB",1)},null,"en",now,_=>true);
+Check(report.Contains("Connection: running") && report.Contains("CPU W=85") && report.Contains("test error"),"diagnostics include fresh connection, sensors and last error");
+Check(!report.Contains("2025CF") && report.Contains("no USB transfers"),"diagnostics omit USB serial and describe read-only discovery");
+Check(WindowsSystemMonitorTrofeo.DiagnosticReport.Build("{}",[],null,"ru",now).Contains("старые данные"),"missing status cannot imply live connection");
+Check(WindowsSystemMonitorTrofeo.DiagnosticReport.Build("{broken",[],"test discovery error","en",now).Contains("Status unavailable"),"malformed status does not prevent compact diagnostic report");
+Console.WriteLine($"FINAL V020: {checks} checks passed.");
+
+var staleNewSensors=HardwareSampler.Fresh(sensorSample.Hardware!,6);
+Check(staleNewSensors.CpuPowerWatts==null && staleNewSensors.GpuPowerWatts==null && staleNewSensors.CpuFanRpm==null && staleNewSensors.GpuFanRpm==null && staleNewSensors.GpuFanPercent==null,"power and fan readings expire with stale telemetry");
+Console.WriteLine($"FINAL V020: {checks} checks passed.");

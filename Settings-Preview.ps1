@@ -1,9 +1,10 @@
 ﻿function Start-TrofeoSettingsPreview($Form,$Picture,$Info,[scriptblock]$Collect,$Data,[string]$Root) {
     $folder=Join-Path $Root ('logs\settings-preview-'+[Guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $folder -Force | Out-Null
-    $renderer=Join-Path $Root 'artifacts\v0.1.7\TrofeoPreviewRenderer.exe'
+    $renderer=Join-Path $Root 'artifacts\v0.2.0\TrofeoPreviewRenderer.exe'
     $ctx=@{Folder=$folder;Root=$Root;Picture=$Picture;Info=$Info;Json='';DraftError='';Stamp='';Worker=$null;Timer=(New-Object Windows.Forms.Timer)}
     $draft={
+        if($Form.Tag -and $Form.Tag.Loading){return}
         try {
             & $Collect
             $json=$Data | ConvertTo-Json
@@ -25,16 +26,16 @@
             $ids=@(Get-Process WindowsSystemMonitorTrofeo -ErrorAction SilentlyContinue | Where-Object {$_.SessionId -eq (Get-Process -Id $PID).SessionId} | ForEach-Object {$_.Id})
 . (Join-Path $ctx.Root 'Tray-State.ps1')
             $state=Resolve-TrayState $record $ids $false $false ([DateTime]::UtcNow)
-            $label=@{running='Подключён, кадры передаются';waiting='Ожидание подключения USB';stopped='Остановлен';error='Ошибка'}[$state]
+            $label=@{running=(Get-TrofeoText 'Подключён, кадры передаются' $Data.Language);waiting=(Get-TrofeoText 'Ожидание подключения USB' $Data.Language);stopped=(Get-TrofeoText 'Остановлен' $Data.Language);error=(Get-TrofeoText 'Ошибка' $Data.Language)}[$state]
             $uptime=[TimeSpan]::FromSeconds([double]$record.uptimeSeconds)
-            $rate=if($state -eq 'running'){'{0:F1}' -f [double]$record.fps}else{'—'}
-            $last=if($record.lastError){$when=([DateTime]$record.lastErrorUtc).ToLocalTime().ToString('dd.MM.yyyy HH:mm:ss');"$($record.lastError) [$when]"}else{'нет'}
-            $frame=if($record.previewUtc){([DateTime]$record.previewUtc).ToLocalTime().ToString('HH:mm:ss')}else{'ещё нет'}
-            $ctx.Info.Text=@("Состояние: $label   |   Время работы: $uptime","FPS: $rate   |   Кадров: $($record.frames)   |   Переподключений: $($record.reconnects)   |   Последний кадр: $frame","Последняя ошибка: $last",'Предпросмотр показывает черновик. На Trofeo изменения попадут после «Применить».') -join [Environment]::NewLine
-            if($state -ne 'running'){$ctx.Info.AppendText([Environment]::NewLine+'Показания недоступны, пока монитор не передаёт данные.')}
-        } catch {$ctx.Info.Text='Монитор остановлен или ещё нет данных подключения. Предпросмотр оформления доступен без USB.'}
-        if($ctx.DraftError){$ctx.Info.AppendText([Environment]::NewLine+'Изменения не показаны: '+$ctx.DraftError)}
-        if($ctx.Worker.HasExited){$ctx.Info.AppendText([Environment]::NewLine+'Не удалось запустить предпросмотр. Закройте и откройте настройки.')}
+            $rate=if($state -eq 'running'){([double]$record.fps).ToString('F1',[Globalization.CultureInfo]::GetCultureInfo($(if($Data.Language -eq 'en'){'en-US'}else{'ru-RU'})))}else{'—'}
+            $last=if($record.lastError){$when=([DateTime]$record.lastErrorUtc).ToLocalTime().ToString('dd.MM.yyyy HH:mm:ss');"$($record.lastError) [$when]"}else{(Get-TrofeoText 'нет' $Data.Language)}
+            $frame=if($record.previewUtc){([DateTime]$record.previewUtc).ToLocalTime().ToString('HH:mm:ss')}else{(Get-TrofeoText 'ещё нет' $Data.Language)}
+            $ctx.Info.Text=@(((Get-TrofeoText 'Состояние: {0}   |   Время работы: {1}' $Data.Language) -f $label,$uptime),((Get-TrofeoText 'FPS: {0}   |   Кадров: {1}   |   Переподключений: {2}   |   Последний кадр: {3}' $Data.Language) -f $rate,$record.frames,$record.reconnects,$frame),((Get-TrofeoText 'Последняя ошибка: {0}' $Data.Language) -f $last),(Get-TrofeoText 'Предпросмотр показывает черновик. На Trofeo изменения попадут после «Применить».' $Data.Language)) -join [Environment]::NewLine
+            if($state -ne 'running'){$ctx.Info.AppendText([Environment]::NewLine+(Get-TrofeoText 'Показания недоступны, пока монитор не передаёт данные.' $Data.Language))}
+        } catch {$ctx.Info.Text=(Get-TrofeoText 'Монитор остановлен или ещё нет данных подключения. Предпросмотр оформления доступен без USB.' $Data.Language)}
+        if($ctx.DraftError){$ctx.Info.AppendText([Environment]::NewLine+(Get-TrofeoText 'Изменения не показаны: ' $Data.Language)+$ctx.DraftError)}
+        if($ctx.Worker.HasExited){$ctx.Info.AppendText([Environment]::NewLine+(Get-TrofeoText 'Не удалось запустить предпросмотр. Закройте и откройте настройки.' $Data.Language))}
         try {
             $file=Join-Path $ctx.Folder 'preview.jpg'
             $stamp=(Get-Item -LiteralPath $file -ErrorAction Stop).LastWriteTimeUtc.Ticks
@@ -44,9 +45,9 @@
                 try{$source=[Drawing.Image]::FromStream($stream);$bmp=New-Object Drawing.Bitmap($source);$old=$ctx.Picture.Image;$ctx.Picture.Image=$bmp;if($old){$old.Dispose()};$ctx.Stamp=$stamp;$ctx.Picture.Tag=$stamp}
                 finally{if($source){$source.Dispose()};$stream.Dispose()}
             }
-            if($ctx.Worker.HasExited){$ctx.Info.AppendText([Environment]::NewLine+'Предпросмотр завершился. Закройте и откройте настройки.')}
+            if($ctx.Worker.HasExited){$ctx.Info.AppendText([Environment]::NewLine+(Get-TrofeoText 'Предпросмотр завершился. Закройте и откройте настройки.' $Data.Language))}
             $errorFile=Join-Path $ctx.Folder 'error.txt'
-            if(Test-Path $errorFile){$errorText=[IO.File]::ReadAllText($errorFile);if($errorText){$ctx.Info.AppendText([Environment]::NewLine+'Предпросмотр: '+$errorText)}}
+            if(Test-Path $errorFile){$errorText=[IO.File]::ReadAllText($errorFile);if($errorText){$ctx.Info.AppendText([Environment]::NewLine+(Get-TrofeoText 'Предпросмотр: ' $Data.Language)+$errorText)}}
         } catch { }
     }.GetNewClosure()
     function Watch-TrofeoDraft($control,[scriptblock]$action){

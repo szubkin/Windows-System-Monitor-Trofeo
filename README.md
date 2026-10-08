@@ -1,12 +1,22 @@
-# Windows System Monitor Trofeo 0.1.7
+# Windows System Monitor Trofeo 0.2.0
 
 Windows x64 / .NET 8 live display monitor. Existing Microsoft WINUSB and Windows System Monitor 0.2 are unchanged.
+
+## New in 0.2.0 / Новое
+
+Settings provide dark/light LCD themes, three appearance presets, independent secondary CPU/GPU metrics, supported power/fan sensors, Diagnostics and Updates buttons. Select a theme or preset to preview it; Apply sends the saved configuration to the monitor. Diagnostics saves logs/diagnostics/trofeo-*.txt and opens the report. Updates checks GitHub manually and offers the release page for a newer stable version; it does not install updates automatically.
+
+В настройках появились тёмное и светлое оформление экрана, готовые профили, выбор нижних показателей CPU/GPU, доступные датчики мощности и вентиляторов, кнопки диагностики и обновлений. Недоступные датчики показывают «—»; проценты вентилятора GPU не выдаются за обороты. Новое оформление сначала видно в предпросмотре, на экран оно попадает после «Применить».
+
+## Language / Язык
+
+Choose Русский or English in the first row of Settings. The settings window and draft preview switch immediately. Apply saves the choice, updates the tray menu and restarts a running monitor with the selected language. Old settings default to Russian; language is retained in export/import. The installer has its own language selector and preserves existing settings during updates.
 
 ## Install and launch
 
 Settings and connection preview now share one window without tabs: proportional preview above the scrollable settings, connection status above the bottom buttons. Appearance changes render a private draft using current telemetry; only Apply saves settings and updates Trofeo. A separate hidden renderer never opens USB.
 
-The next test build is **v0.1.7**: Settings → Screen controls visible equal-width blocks, accent color, text size, CPU/GPU primary readings, graphs and hardware names. Install using Trofeo-Setup-0.1.7.exe; the installer automatically stops the existing monitor before updating; older settings receive appearance defaults.
+The next test build is **v0.2.0**: Settings → Screen controls visible equal-width blocks, accent color, text size, CPU/GPU primary readings, graphs and hardware names. Install using Trofeo-Setup-0.2.0.exe; the installer automatically stops the existing monitor before updating; older settings receive appearance defaults.
 
 The main release is **v0.1.0**, promoted from the user-verified v0.0.20 recovery fix. v0.0.19 remains archived as a previous release. Close Trofeo through Exit in the tray, run `Trofeo-Setup-0.1.0.exe`, choose the existing installation folder, then open Trofeo Monitor. The self-contained Windows x64 installer includes .NET 8 and preserves existing settings. Historical PowerShell installers below are retained for reference.
 

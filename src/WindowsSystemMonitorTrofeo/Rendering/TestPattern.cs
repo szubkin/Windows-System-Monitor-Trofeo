@@ -26,7 +26,7 @@ public static class TestPattern
             g.FillRectangle(accent, 40, 50, 8, 112);
             g.DrawString("WINDOWS SYSTEM MONITOR", title, Brushes.White, 72, 48);
             g.DrawString("TROFEO  /  FIRST LIGHT", subtitle, accent, 74, 112);
-            g.DrawString("v0.1.7     1920 x 462     DIRECT WINUSB", small, muted, 76, 159);
+            g.DrawString("v0.1.9     1920 x 462     DIRECT WINUSB", small, muted, 76, 159);
             if (demoFrame is int frame)
             {
                 g.DrawString("DYNAMIC FRAME TEST", subtitle, accent, 1130, 53);

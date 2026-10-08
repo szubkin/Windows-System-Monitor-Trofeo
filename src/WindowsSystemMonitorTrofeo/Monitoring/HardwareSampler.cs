@@ -6,7 +6,7 @@ using LibreHardwareMonitor.Hardware;
 namespace WindowsSystemMonitorTrofeo.Monitoring;
 
 public sealed record HardwareSnapshot(string GpuName, double? GpuLoad, double? GpuTemperature,
-    double? VramUsedMiB, double? VramTotalMiB, double? CpuTemperature, string CpuSensor, string Status, double? CpuClockMHz = null, double? DiskTemperature = null, double? DiskReadBytes = null, double? DiskWriteBytes = null);
+    double? VramUsedMiB, double? VramTotalMiB, double? CpuTemperature, string CpuSensor, string Status, double? CpuClockMHz = null, double? DiskTemperature = null, double? DiskReadBytes = null, double? DiskWriteBytes = null, double? CpuPowerWatts = null, double? GpuPowerWatts = null, double? CpuFanRpm = null, double? GpuFanRpm = null, double? GpuFanPercent = null);
 
 // One worker owns native sensor resources. Slow sensor calls never block USB keepalive.
 public sealed class HardwareSampler : IDisposable
@@ -24,7 +24,7 @@ public sealed class HardwareSampler : IDisposable
     }
     public static HardwareSnapshot Fresh(HardwareSnapshot data, double age) => age <= 5 ? data :
         data with { GpuLoad = null, GpuTemperature = null, VramUsedMiB = null, VramTotalMiB = null,
-            CpuTemperature = null, CpuClockMHz = null, DiskTemperature = null, DiskReadBytes = null, DiskWriteBytes = null, Status = "Sensor data stale (>5s)" };
+            CpuTemperature = null, CpuClockMHz = null, DiskTemperature = null, DiskReadBytes = null, DiskWriteBytes = null, CpuPowerWatts = null, GpuPowerWatts = null, CpuFanRpm = null, GpuFanRpm = null, GpuFanPercent = null, Status = "Sensor data stale (>5s)" };
 
     public static (double? value, string name) SelectCpu(IEnumerable<(string name, double? value)> sensors)
     {
@@ -39,6 +39,18 @@ public sealed class HardwareSampler : IDisposable
         return core.value.HasValue ? (core.value, "Hottest core") : (null, "Unavailable");
     }
 
+    public static double? SelectCpuPower(IEnumerable<(string name,double? value)> sensors) =>
+        sensors.Where(s => s.value is >= 0 and <= 1500 && double.IsFinite(s.value.Value))
+            .Where(s => new[]{"CPU Package","Package","CPU Package Power","CPU PPT","PPT"}.Contains(s.name,StringComparer.OrdinalIgnoreCase))
+            .OrderBy(s=>s.name.Contains("Package",StringComparison.OrdinalIgnoreCase)?0:1).Select(s=>s.value).FirstOrDefault();
+    public static double? SelectCpuFan(IEnumerable<(string name,double? value)> sensors) =>
+        sensors.Where(s=>s.name.Contains("CPU",StringComparison.OrdinalIgnoreCase) && s.value is >= 0 and <= 50000 && double.IsFinite(s.value.Value))
+            .Select(s=>s.value).FirstOrDefault();
+    private static void CollectFans(IHardware hardware,List<(string,double?)> fans) {
+        hardware.Update();
+        fans.AddRange(hardware.Sensors.Where(s=>s.SensorType==SensorType.Fan).Select(s=>(s.Name,(double?)s.Value)));
+        foreach(var sub in hardware.SubHardware)CollectFans(sub,fans);
+    }
     private void Run(bool cpuSensors, string driveRoot)
     {
         Computer? computer = null;
@@ -52,14 +64,14 @@ public sealed class HardwareSampler : IDisposable
             {
                 bool canReadCpu = cpuSensors && LibreHardwareMonitor.PawnIo.PawnIo.IsInstalled;
                 if (cpuSensors && !canReadCpu) cpuStatus = "CPU temperature requires PawnIO driver";
-                computer = new Computer { IsCpuEnabled = canReadCpu, IsStorageEnabled = true };
+                computer = new Computer { IsCpuEnabled = canReadCpu, IsStorageEnabled = true, IsMotherboardEnabled = canReadCpu };
                 computer.Open();
             }
             catch (Exception e) { cpuStatus = "Sensor init: " + e; }
             while (!stop.IsCancellationRequested)
             {
                 string gpuName = "NVIDIA GPU";
-                double? load = null, temperature = null, used = null, total = null, cpuTemp = null, cpuClock = null, diskTemp = null;
+                double? load = null, temperature = null, used = null, total = null, cpuTemp = null, cpuClock = null, diskTemp = null, cpuPower = null, gpuPower = null, cpuFan = null, gpuFanRpm = null, gpuFanPercent = null;
                 string cpuSensor = cpuSensors ? (computer == null ? "PawnIO unavailable" : "Unavailable") : "Disabled";
                 var status = new List<string>();
                 try
@@ -72,6 +84,14 @@ public sealed class HardwareSampler : IDisposable
                         if (Nvml.Temperature(device, 0, out var temp) == 0 && temp <= 130) temperature = temp;
                         if (Nvml.Memory(device, out var memory) == 0 && memory.Used <= memory.Total && memory.Total > 0)
                         { used = memory.Used / 1048576.0; total = memory.Total / 1048576.0; }
+                        try { if (Nvml.Power(device, out var mw) == 0 && mw <= 2000000) gpuPower = mw / 1000.0; }
+                        catch (EntryPointNotFoundException) { }
+                        try { if (Nvml.Fan(device, out var percent) == 0 && percent <= 200) gpuFanPercent = percent; }
+                        catch (EntryPointNotFoundException) { }
+                        try {
+                            var fan = new Nvml.FanInfo { Version = (1u << 24) | (uint)Marshal.SizeOf<Nvml.FanInfo>(), Fan = 0 };
+                            if (Nvml.FanRpm(device, ref fan) == 0 && fan.Speed <= 50000) gpuFanRpm = fan.Speed;
+                        } catch (EntryPointNotFoundException) { }
                         if (load == null || temperature == null || used == null) status.Add("Some GPU sensors unavailable");
                     }
                     else status.Add("NVIDIA NVML unavailable");
@@ -83,15 +103,21 @@ public sealed class HardwareSampler : IDisposable
                     {
                         var clocks = new List<double>();
                         var sensors = new List<(string, double?)>();
+                        var powers = new List<(string, double?)>();
                         foreach (var hardware in computer.Hardware.Where(h => h.HardwareType == HardwareType.Cpu))
                         {
                             hardware.Update();
+                            powers.AddRange(hardware.Sensors.Where(s => s.SensorType == SensorType.Power).Select(s => (s.Name,(double?)s.Value)));
                             clocks.AddRange(hardware.Sensors.Where(s => s.SensorType == SensorType.Clock && s.Name.StartsWith("CPU Core", StringComparison.OrdinalIgnoreCase) && s.Value > 0 && s.Value < 10000).Select(s => (double)s.Value!.Value));
                             sensors.AddRange(hardware.Sensors.Where(s => s.SensorType == SensorType.Temperature)
                                 .Select(s => (s.Name, (double?)s.Value)));
                         }
                         (cpuTemp, cpuSensor) = SelectCpu(sensors);
                         if (clocks.Count > 0) cpuClock = clocks.Average();
+                        cpuPower = SelectCpuPower(powers);
+                        var fans = new List<(string,double?)>();
+                        foreach(var board in computer.Hardware.Where(h=>h.HardwareType==HardwareType.Motherboard)) CollectFans(board,fans);
+                        cpuFan = SelectCpuFan(fans);
                     }
                     catch (Exception e) { cpuStatus = "CPU sensor read: " + e.Message; }
                 }
@@ -111,7 +137,7 @@ public sealed class HardwareSampler : IDisposable
                 (double? read, double? write) diskIo = (null, null);
                 try { diskIo = diskRates.Read(); } catch (Exception e) { status.Add("Disk I/O: " + e.Message); }
                 if (!cpuTemp.HasValue) status.Add(cpuStatus);
-                Volatile.Write(ref latest, new Sample(new(gpuName, load, temperature, used, total, cpuTemp, cpuSensor, string.Join("; ", status), cpuClock, diskTemp, diskIo.read, diskIo.write), Stopwatch.GetTimestamp()));
+                Volatile.Write(ref latest, new Sample(new(gpuName, load, temperature, used, total, cpuTemp, cpuSensor, string.Join("; ", status), cpuClock, diskTemp, diskIo.read, diskIo.write, cpuPower, gpuPower, cpuFan, gpuFanRpm, gpuFanPercent), Stopwatch.GetTimestamp()));
                 if (stop.Token.WaitHandle.WaitOne(1000)) break;
             }
         }
@@ -130,6 +156,13 @@ public sealed class HardwareSampler : IDisposable
 
     private static class Nvml
     {
+        [StructLayout(LayoutKind.Sequential)] public struct FanInfo { public uint Version, Fan, Speed; }
+        [DllImport("nvml.dll", EntryPoint = "nvmlDeviceGetPowerUsage", CallingConvention = CallingConvention.Cdecl)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] public static extern int Power(IntPtr device, out uint power);
+        [DllImport("nvml.dll", EntryPoint = "nvmlDeviceGetFanSpeed", CallingConvention = CallingConvention.Cdecl)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] public static extern int Fan(IntPtr device, out uint percent);
+        [DllImport("nvml.dll", EntryPoint = "nvmlDeviceGetFanSpeedRPM", CallingConvention = CallingConvention.Cdecl)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] public static extern int FanRpm(IntPtr device, ref FanInfo fan);
         [StructLayout(LayoutKind.Sequential)] public struct Util { public uint Gpu, Memory; }
         [StructLayout(LayoutKind.Sequential)] public struct Mem { public ulong Total, Free, Used; }
         [DllImport("nvml.dll", EntryPoint = "nvmlInit_v2", CallingConvention = CallingConvention.Cdecl)]

@@ -42,7 +42,7 @@ try{
     while(!(Test-Path (Join-Path $testDir 'monitor-ready')) -or !(Test-Path (Join-Path $testDir 'tray-ready')) -or !(Test-Path (Join-Path $other 'tray-ready'))){
         if([DateTime]::UtcNow -gt $limit){throw 'Mocks did not start'};Start-Sleep -Milliseconds 50
     }
-    $setup=Start-Process (Join-Path $root 'artifacts\Trofeo-Setup-0.1.7.exe') -WindowStyle Hidden -PassThru -Wait -ArgumentList @('--test-stop',('"'+$testDir+'"'))
+    $setup=Start-Process (Join-Path $root 'artifacts\Trofeo-Setup-0.2.0.exe') -WindowStyle Hidden -PassThru -Wait -ArgumentList @('--test-stop',('"'+$testDir+'"'))
     if($setup.ExitCode -ne 0 -or !(Test-Path (Join-Path $testDir 'monitor-stopped'))){throw 'Installer did not wait for graceful monitor stop'}
     if(!$monitor.WaitForExit(1000) -or !$tray.WaitForExit(1000) -or $unrelated.HasExited){throw 'Incorrect shutdown process scope'}
     Write-Output 'PASS: installer waits for safe monitor stop, closes its legacy tray and preserves an unrelated host; mock events only, no USB.'

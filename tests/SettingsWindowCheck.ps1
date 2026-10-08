@@ -6,7 +6,7 @@ Add-Type -AssemblyName System.Drawing
 $root=Split-Path $PSScriptRoot
 $copy=Join-Path $root ('artifacts\settings-ui-'+[Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path (Join-Path $copy 'assets') -Force | Out-Null
-foreach($name in @('Ui-Theme.ps1','Settings-Core.ps1','Settings-Window.ps1','trofeo-settings.json')) {Copy-Item -LiteralPath (Join-Path $root $name) -Destination $copy}
+foreach($name in @('Localization.ps1','Ui-Theme.ps1','Settings-Core.ps1','Settings-Window.ps1','Settings-Tools.ps1','trofeo-settings.json')) {Copy-Item -LiteralPath (Join-Path $root $name) -Destination $copy}
 Copy-Item -LiteralPath (Join-Path $root 'assets\trofeo-app.ico') -Destination (Join-Path $copy 'assets')
 . (Join-Path $copy 'Settings-Core.ps1')
 . (Join-Path $copy 'Settings-Window.ps1')
@@ -42,6 +42,10 @@ try {
     $before=(Get-FileHash (Join-Path $copy 'trofeo-settings.json')).Hash
     $numeric[0].Value=2
     $resetButton=$form.Controls | Where-Object {$_ -is [Windows.Forms.Button] -and $_.Text -eq 'По умолчанию'}
+    $preset=$screen.Controls | Where-Object {$_.Name -eq 'AppearanceProfile'}
+    $preset.SelectedIndex=2
+    if(($screen.Controls | Where-Object {$_.Name -eq 'CpuMetric'}).SelectedItem.Value -ne 'temperature' -or ($screen.Controls | Where-Object {$_.Name -eq 'CpuSecondaryRight'}).SelectedItem.Value -ne 'power'){throw 'Preset did not load coherent metric choices'}
+    if((Get-FileHash (Join-Path $copy 'trofeo-settings.json')).Hash -ne $before){throw 'Preset changed saved settings before Apply'}
     $resetButton.PerformClick()
     if($numeric[0].Value -ne 6 -or (Get-FileHash (Join-Path $copy 'trofeo-settings.json')).Hash -ne $before){throw 'Reset must update form only'}
     if(@($blocks | Where-Object {$_.Checked}).Count -ne 5){throw 'Reset did not restore display blocks'}
@@ -72,6 +76,18 @@ try {
     $color.Invalidate();[Windows.Forms.Application]::DoEvents()
     $swatch=New-Object Drawing.Bitmap($color.Width,$color.Height)
     try{$color.DrawToBitmap($swatch,(New-Object Drawing.Rectangle(0,0,$color.Width,$color.Height)));if($color.Text -ne '' -or $swatch.GetPixel([int]($color.Width/2),[int]($color.Height/2)).ToArgb() -ne [Drawing.ColorTranslator]::FromHtml('#FF8844').ToArgb()){throw 'Accent swatch not painted'}}finally{$swatch.Dispose()}
+    $language=$general.Controls | Where-Object {$_.Name -eq 'Language'}
+    $beforeLanguage=(Get-FileHash (Join-Path $copy 'trofeo-settings.json')).Hash
+    $language.SelectedIndex=1
+    [Windows.Forms.Application]::DoEvents()
+    if($form.Text -ne 'Trofeo — settings, preview and connection' -or $apply.Text -ne 'Apply' -or ($screen.Controls | Where-Object {$_.Name -eq 'CpuMetric'}).SelectedItem.Value -ne 'temperature'){throw 'English translation changed values or missed controls'}
+    if((Get-FileHash (Join-Path $copy 'trofeo-settings.json')).Hash -ne $beforeLanguage){throw 'Draft language saved before Apply'}
+    $bitmap=New-Object Drawing.Bitmap($form.Width,$form.Height)
+    try{$form.DrawToBitmap($bitmap,(New-Object Drawing.Rectangle(0,0,$form.Width,$form.Height)));$bitmap.Save((Join-Path $root ('artifacts\qa\settings-en-'+$Scale+'.png')))}finally{$bitmap.Dispose()}
+    $apply.PerformClick()
+    if((Read-TrofeoSettings (Join-Path $copy 'trofeo-settings.json')).Language -ne 'en'){throw 'English selection not saved'}
+    $language.SelectedIndex=0
+    if($apply.Text -ne 'Применить' -or (Read-TrofeoSettings (Join-Path $copy 'trofeo-settings.json')).Language -ne 'en'){throw 'Russian switch or unsaved language isolation failed'}
     $close=$form.Controls | Where-Object {$_ -is [Windows.Forms.Button] -and $_.Text -eq 'Закрыть'}
     $close.PerformClick()
     if($form.Visible){throw 'Close did not close settings'}

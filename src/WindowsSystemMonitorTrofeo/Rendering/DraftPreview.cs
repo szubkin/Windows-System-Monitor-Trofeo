@@ -10,9 +10,12 @@ public static class DraftPreview
     {
         using var settings = JsonDocument.Parse(File.ReadAllText(settingsPath));
         var s = settings.RootElement;
+        string Option(string key,string fallback) => s.TryGetProperty(key,out var property) ? property.GetString()! : fallback;
         var display = new DisplayOptions(s.GetProperty("DisplayBlocks").GetString()!, s.GetProperty("AccentColor").GetString()!,
             s.GetProperty("TextPercent").GetInt32(), s.GetProperty("CpuMetric").GetString()!, s.GetProperty("GpuMetric").GetString()!,
-            s.GetProperty("ShowGraphs").GetBoolean(), s.GetProperty("ShowDeviceNames").GetBoolean());
+            s.GetProperty("ShowGraphs").GetBoolean(), s.GetProperty("ShowDeviceNames").GetBoolean(),
+            Option("Language","ru"), Option("Theme","dark"), Option("CpuSecondaryLeft","auto"), Option("CpuSecondaryRight","auto"),
+            Option("GpuSecondaryLeft","auto"), Option("GpuSecondaryRight","auto"));
         var thresholds = new TemperatureThresholds(s.GetProperty("CpuYellow").GetInt32(),s.GetProperty("CpuRed").GetInt32(),
             s.GetProperty("GpuYellow").GetInt32(),s.GetProperty("GpuRed").GetInt32());
         Snapshot data = new(null,null,null,null,null,null,null,null,s.GetProperty("Drive").GetString() is {Length:>0} drive ? drive : "C:");

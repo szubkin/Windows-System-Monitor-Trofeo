@@ -3,7 +3,7 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [Windows.Forms.Application]::EnableVisualStyles()
 $root=Split-Path $PSScriptRoot
-$copy=Join-Path $root 'artifacts\setup-check-017'
+$copy=Join-Path $root 'artifacts\setup-check-020'
 $logs=Join-Path $copy 'logs'
 New-Item -ItemType Directory -Path $logs -Force | Out-Null
 # Fresh mock telemetry, not a USB monitor process.
@@ -38,10 +38,18 @@ try{
     PumpUntil {((Get-Content (Join-Path $privateFolder.FullName 'rendered-draft.json') -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json).CpuMetric -eq 'temperature')}
     $renderedStamp=(Get-Item $jpeg).LastWriteTimeUtc.Ticks
     PumpUntil {$picture.Tag -ge $renderedStamp}
+    $language=$body.Controls | Where-Object {$_.Name -eq 'GeneralSettings'} | ForEach-Object {$_.Controls | Where-Object {$_.Name -eq 'Language'}}
+    $theme=$screen.Controls | Where-Object {$_.Name -eq 'Theme'}
+    $theme.SelectedIndex=1
+    ($screen.Controls | Where-Object {$_.Name -eq 'GpuSecondaryRight'}).SelectedIndex=6
+    PumpUntil {((Get-Content (Join-Path $privateFolder.FullName 'rendered-draft.json') -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json).Theme -eq 'light')}
+    $language.SelectedIndex=1
+    PumpUntil {((Get-Content (Join-Path $privateFolder.FullName 'rendered-draft.json') -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json).Language -eq 'en')}
+    PumpUntil {($form.Controls | Where-Object {$_.Name -eq 'ConnectionStatus'}).Text.StartsWith('Status:')}
     if((Get-FileHash $liveSettings).Hash -ne $before){throw 'Draft leaked into applied settings'}
-    $apply=$form.Controls | Where-Object {$_ -is [Windows.Forms.Button] -and $_.Text -eq 'Применить'}
+    $apply=$form.Controls | Where-Object {$_ -is [Windows.Forms.Button] -and $_.Text -eq 'Apply'}
     $apply.PerformClick()
-    if($applied.Count -ne 1 -or (Read-TrofeoSettings $liveSettings).CpuMetric -ne 'temperature' -or !$form.Visible){throw 'Apply failed or closed window'}
+    if($applied.Count -ne 1 -or (Read-TrofeoSettings $liveSettings).CpuMetric -ne 'temperature' -or (Read-TrofeoSettings $liveSettings).Language -ne 'en' -or (Read-TrofeoSettings $liveSettings).Theme -ne 'light' -or (Read-TrofeoSettings $liveSettings).GpuSecondaryRight -ne 'fan' -or !$form.Visible){throw 'Apply failed or closed window'}
     $bitmap=New-Object Drawing.Bitmap($form.Width,$form.Height)
     try{$form.DrawToBitmap($bitmap,(New-Object Drawing.Rectangle(0,0,$form.Width,$form.Height)));$bitmap.Save((Join-Path $root 'artifacts\qa\settings-integrated-preview.png'))}finally{$bitmap.Dispose()}
     $workers=@(Get-Process TrofeoPreviewRenderer -ErrorAction SilentlyContinue | Where-Object {$_.Path -and $_.Path.StartsWith($copy)})

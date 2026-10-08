@@ -1,0 +1,158 @@
+﻿# Stable identifiers and settings values are never translated.
+$script:TrofeoTranslations=@{
+    'CPU: слева / справа'='CPU: left / right'
+    'GPU: слева / справа'='GPU: left / right'
+    'Оформление монитора'='Monitor appearance'
+    'Тёмное'='Dark'
+    'Светлое'='Light'
+    'Готовый профиль'='Appearance profile'
+    'Пользовательский'='Custom'
+    'Компактный'='Compact'
+    'Крупные температуры'='Large temperatures'
+    'Подробные графики'='Detailed graphs'
+    'CPU: слева внизу'='CPU: bottom left'
+    'CPU: справа внизу'='CPU: bottom right'
+    'GPU: слева внизу'='GPU: bottom left'
+    'GPU: справа внизу'='GPU: bottom right'
+    'Не показывать'='Hidden'
+    'Мощность, Вт'='Power, W'
+    'Вентилятор'='Fan speed'
+    'Температура, мощность и вентиляторы доступны только при поддержке оборудования. «—» означает отсутствие данных. Скорость GPU может отображаться в процентах, если обороты недоступны.'='Temperature, power and fans require hardware support. “—” means unavailable. GPU fan speed may show percent when RPM is unavailable.'
+    'Диагностика'='Diagnostics'
+    'Отчёт сохранён.'='Report saved.'
+    'Ошибка проверки обновлений.'='Update check failed.'
+    'Не удалось создать отчёт.'='Could not create report.'
+    'Обновления'='Updates'
+    'Проверяю…'='Checking…'
+    'Проверяем…'='Checking…'
+    'Создаём отчёт…'='Creating report…'
+    'Установлена {0}; GitHub: {1}.'='Installed {0}; GitHub: {1}.'
+    'Создаю отчёт…'='Creating report…'
+    'Отчёт сохранён: {0}'='Report saved: {0}'
+    'Не удалось сохранить отчёт: {0}'='Could not save report: {0}'
+    'Нет новых обновлений. Установлено {0}; GitHub {1}.'='No update available. Installed {0}; GitHub {1}.'
+    'Доступна версия {0}. Открыть GitHub?'='Version {0} is available. Open GitHub?'
+    'Не удалось проверить обновления: {0}'='Could not check updates: {0}'
+    'Проверка обновлений'='Update check'
+    'Обновлений пока нет.'='No published release yet.'
+    'Неподдерживаемый номер версии GitHub.'='Unsupported GitHub version tag.'
+    'Недопустимый адрес релиза GitHub.'='Invalid GitHub release address.'
+    'Профили и сервисные кнопки доступны без подключения USB.'='Profiles and tools are available without USB.'
+    'Trofeo — настройки, предпросмотр и подключение'='Trofeo — settings, preview and connection'
+    'Частота обновления, FPS'='Refresh rate, FPS'
+    'Поворот экрана'='Screen rotation'
+    'Автоматически'='Automatic'
+    'Сетевой адаптер'='Network adapter'
+    'Все активные адаптеры'='All active adapters'
+    'Недоступный адаптер (сохранён)'='Unavailable adapter (saved)'
+    'Диск'='Disk'
+    'Системный диск'='System drive'
+    ' (недоступен)'=' (unavailable)'
+    'Датчики температуры и частоты CPU'='CPU temperature and clock sensors'
+    'Запускать при входе в Windows'='Start when signing in to Windows'
+    'Хранить логи, дней'='Keep logs, days'
+    'Лимит старых логов, МиБ'='Old logs limit, MiB'
+    'CPU: жёлтый от, °C'='CPU: yellow from, °C'
+    'CPU: красный от, °C'='CPU: red from, °C'
+    'GPU: жёлтый от, °C'='GPU: yellow from, °C'
+    'GPU: красный от, °C'='GPU: red from, °C'
+    'Текущий и последний запуск сохраняются. Изменения перезапустят работающий монитор.'='Current and last runs are kept. Applying changes restarts a running monitor.'
+    'Применить'='Apply'
+    'Закрыть'='Close'
+    'Показывать блоки (минимум один)'='Show blocks (at least one)'
+    'Память'='Memory'
+    'Сеть'='Network'
+    'Размер текста'='Text size'
+    'Цвет акцента'='Accent color'
+    'Выбрать цвет акцента'='Choose accent color'
+    'Главный показатель CPU'='Primary CPU reading'
+    'Главный показатель GPU'='Primary GPU reading'
+    'Загрузка, %'='Load, %'
+    'Температура, °C'='Temperature, °C'
+    'Частота, ГГц'='Clock, GHz'
+    'Видеопамять, ГиБ'='Video memory, GiB'
+    'Показывать графики загрузки и сети'='Show load and network graphs'
+    'Показывать подписи оборудования и адаптера'='Show hardware and adapter labels'
+    'Скрытые блоки освобождают место: видимые имеют равную ширину.'='Hidden blocks free up space; visible blocks have equal widths.'
+    'Температура и частота CPU требуют включённых датчиков CPU. Если показание недоступно, отображается «—». Цветовые пороги температуры сохраняются.'='CPU temperature and clock require CPU sensors. Unavailable readings show “—”. Temperature color thresholds are retained.'
+    'Красный порог должен быть выше жёлтого.'='The red threshold must be higher than yellow.'
+    'Выберите хотя бы один блок экрана.'='Select at least one screen block.'
+    'Значения загружены. Нажмите «Применить», чтобы сохранить. Автозапуск не изменён.'='Values loaded. Click Apply to save. Windows startup is unchanged.'
+    'Экспорт...'='Export...'
+    'Импорт...'='Import...'
+    'По умолчанию'='Defaults'
+    'Настройки JSON (*.json)|*.json'='JSON settings (*.json)|*.json'
+    'Не удалось импортировать'='Import failed'
+    'Выберите отдельный файл для экспорта.'='Choose a separate export file.'
+    'Настройки экспортированы. Автозапуск Windows в файл не включён.'='Settings exported. Windows startup is not included in the file.'
+    'Не удалось экспортировать'='Export failed'
+    'Настройки сохранены. Окно можно оставить открытым или нажать «Закрыть».'='Settings saved. Keep this window open or click Close.'
+    'Не удалось сохранить настройки'='Could not save settings'
+    'Состояние подключения появится после запуска монитора.'='Connection status will appear after starting the monitor.'
+    'Не удалось открыть предпросмотр: '='Could not open preview: '
+    'Запустить'='Start'
+    'Остановить'='Stop'
+    'Перезапустить'='Restart'
+    'Автозапуск при входе'='Start at sign-in'
+    'Настройки и предпросмотр...'='Settings and preview...'
+    'Открыть логи'='Open logs'
+    'Выход'='Exit'
+    'Монитор не завершился за 45 секунд. Повторный запуск отменён; проверьте логи.'='The monitor did not stop within 45 seconds. Restart cancelled; check the logs.'
+    'Работает'='Running'
+    'Ожидает USB'='Waiting for USB'
+    'Остановлен'='Stopped'
+    'Ошибка'='Error'
+    'Остановка...'='Stopping...'
+    'Подключён, кадры передаются'='Connected, sending frames'
+    'Ожидание подключения USB'='Waiting for USB connection'
+    'нет'='none'
+    'ещё нет'='not yet'
+    'Состояние: {0}   |   Время работы: {1}'='Status: {0}   |   Uptime: {1}'
+    'FPS: {0}   |   Кадров: {1}   |   Переподключений: {2}   |   Последний кадр: {3}'='FPS: {0}   |   Frames: {1}   |   Reconnects: {2}   |   Last frame: {3}'
+    'Последняя ошибка: {0}'='Last error: {0}'
+    'Предпросмотр показывает черновик. На Trofeo изменения попадут после «Применить».'='Preview shows a draft. Changes reach Trofeo after you click Apply.'
+    'Показания недоступны, пока монитор не передаёт данные.'='Readings are unavailable until the monitor sends data.'
+    'Монитор остановлен или ещё нет данных подключения. Предпросмотр оформления доступен без USB.'='Monitor stopped or no connection data yet. Layout preview is available without USB.'
+    'Изменения не показаны: '='Changes not shown: '
+    'Не удалось запустить предпросмотр. Закройте и откройте настройки.'='Could not start preview. Close and reopen settings.'
+    'Предпросмотр завершился. Закройте и откройте настройки.'='Preview stopped. Close and reopen settings.'
+    'Предпросмотр: '='Preview: '
+    'Некорректные значения настроек.'='Settings out of range.'
+    'Температурные пороги: 1 <= жёлтый < красный <= 130.'='Temperature thresholds: 1 <= yellow < red <= 130.'
+    'Выберите хотя бы один уникальный блок экрана.'='Select at least one unique screen block.'
+    'Некорректные настройки экрана.'='Invalid screen settings.'
+    'Некорректный адаптер или диск.'='Invalid adapter or drive.'
+    'Файл настроек превышает 64 КБ.'='Settings file exceeds 64 KB.'
+    'Недопустимый язык.'='Invalid language.'
+    'Запустите через ярлык Trofeo Monitor.'='Launch using the Trofeo Monitor shortcut.'
+    'Операция автозапуска завершилась ошибкой ({0}).'='Autostart operation failed ({0}).'
+    'Некорректное целое число: {0}'='Invalid integer: {0}'
+    'Язык интерфейса'='Interface language'
+}
+function Get-TrofeoText([string]$Text,[string]$Language='ru') {
+    foreach($suffix in @(' (недоступен)',' (unavailable)')) {
+        if($Text.Length -gt $suffix.Length -and $Text.EndsWith($suffix)){return $Text.Substring(0,$Text.Length-$suffix.Length)+(Get-TrofeoText ' (недоступен)' $Language)}
+    }
+    $source=$Text
+    if(!$script:TrofeoTranslations.ContainsKey($source)) {
+        foreach($key in $script:TrofeoTranslations.Keys){if($script:TrofeoTranslations[$key] -ceq $Text){$source=$key;break}}
+    }
+    if($Language -eq 'en' -and $script:TrofeoTranslations.ContainsKey($source)){return $script:TrofeoTranslations[$source]}
+    return $source
+}
+function Update-TrofeoFormLanguage($Control,[string]$Language) {
+    if($Control -isnot [Windows.Forms.TextBox] -or $Control.ReadOnly){$Control.Text=Get-TrofeoText $Control.Text $Language}
+    if($Control.AccessibleName){$Control.AccessibleName=Get-TrofeoText $Control.AccessibleName $Language}
+    if($Control -is [Windows.Forms.ComboBox] -and $Control.Name -ne 'Language'){
+        $selected=$Control.SelectedIndex
+        $Control.BeginUpdate()
+        try {
+            for($i=0;$i -lt $Control.Items.Count;$i++){
+                $item=$Control.Items[$i]
+                if($item.PSObject.Properties['Label']){$item.Label=Get-TrofeoText $item.Label $Language;$Control.Items[$i]=$item}
+            }
+            $Control.SelectedIndex=$selected
+        }finally{$Control.EndUpdate()}
+    }
+    foreach($child in $Control.Controls){Update-TrofeoFormLanguage $child $Language}
+}

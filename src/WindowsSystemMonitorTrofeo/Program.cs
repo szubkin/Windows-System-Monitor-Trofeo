@@ -8,10 +8,12 @@ using WindowsSystemMonitorTrofeo.Monitoring;
 
 if(args.Length == 4 && args[0] == "--settings-preview-worker" && int.TryParse(args[3],out var previewParent))
     return DraftPreview.Run(args[1],args[2],previewParent);
+if(args.Length==6 && args[0]=="--diagnostics" && args[2]=="--status-file" && args[4]=="--language" && args[5] is "ru" or "en")
+    return DiagnosticReport.Run(args[1],args[3],args[5]);
 Console.OutputEncoding = Encoding.UTF8;
 if (args.Length == 0 || args.Contains("--help"))
 {
-    Console.WriteLine("Windows System Monitor Trofeo 0.1.7\nUsage: --list | --probe | --test-pattern | --demo | --monitor | --monitor-preview | --preview | --check-runtime\nOptions: --device <instance-id> --timeout-ms 3000 --log-dir <folder> --rotation 0|180 --hold-seconds 0..3600 --fps 1..10 --reset-pipes --continuous --recover --verbose\nCompact log is default (errors and final summary only; progress JSON updated each minute); --verbose enables hex dumps. --continuous runs until Ctrl+C and excludes --hold-seconds.\nDisplay: --display-blocks CPU,GPU,MEMORY,NETWORK,DISK --accent-color #44E2C6 --text-percent 90..110 --cpu-metric load|temperature|clock --gpu-metric load|temperature|vram --hide-graphs --hide-device-names\nSensors: --cpu-sensors (LibreHardwareMonitor CPU temperatures; requires PawnIO and may require administrator). NVIDIA GPU via NVML.\nDiagnostics: --usb-block-size 2048|4096 --block-delay-ms 0..10\n--monitor shows CPU, RAM, network rates and system disk capacity; --monitor-preview saves live data without USB. --demo shows a moving marker, clock and frame counter. --test-pattern holds a static image. Default 60s, target cap 4 FPS, USB 2048-byte blocks + 1ms pause (measured ~1.26 FPS); Ctrl+C stops BETWEEN complete frames. Close TRCC first.\n--preview saves a static test image without USB. Rotation follows panel SUB (preview: 180).\nExit: 0 completed/cancelled, 2 arguments, 3 not found, 4 ambiguous, 5 driver/profile, 6 native/I/O error, 7 invalid handshake. See summary JSON for cancellation/failure details.");
+    Console.WriteLine("Windows System Monitor Trofeo 0.1.9\nUsage: --list | --probe | --test-pattern | --demo | --monitor | --monitor-preview | --preview | --check-runtime\nOptions: --device <instance-id> --timeout-ms 3000 --log-dir <folder> --rotation 0|180 --hold-seconds 0..3600 --fps 1..10 --reset-pipes --continuous --recover --verbose\nCompact log is default (errors and final summary only; progress JSON updated each minute); --verbose enables hex dumps. --continuous runs until Ctrl+C and excludes --hold-seconds.\nDisplay: --theme dark|light --cpu-secondary-left/right auto|none|load|temperature|clock|power|fan --gpu-secondary-left/right auto|none|load|temperature|vram|power|fan --language ru|en --display-blocks CPU,GPU,MEMORY,NETWORK,DISK --accent-color #44E2C6 --text-percent 90..110 --cpu-metric load|temperature|clock --gpu-metric load|temperature|vram --hide-graphs --hide-device-names\nSensors: --cpu-sensors (LibreHardwareMonitor CPU temperatures; requires PawnIO and may require administrator). NVIDIA GPU via NVML.\nDiagnostics: --usb-block-size 2048|4096 --block-delay-ms 0..10\n--monitor shows CPU, RAM, network rates and system disk capacity; --monitor-preview saves live data without USB. --demo shows a moving marker, clock and frame counter. --test-pattern holds a static image. Default 60s, target cap 4 FPS, USB 2048-byte blocks + 1ms pause (measured ~1.26 FPS); Ctrl+C stops BETWEEN complete frames. Close TRCC first.\n--preview saves a static test image without USB. Rotation follows panel SUB (preview: 180).\nExit: 0 completed/cancelled, 2 arguments, 3 not found, 4 ambiguous, 5 driver/profile, 6 native/I/O error, 7 invalid handshake. See summary JSON for cancellation/failure details.");
     return 0;
 }
 string? selected = null, statusFile = null, networkId = null, driveRoot = null;
@@ -33,6 +35,12 @@ try
     for (int i = 0; i < args.Length; i++)
         switch (args[i])
         {
+            case "--theme": display = display with { Theme = args[++i] }; break;
+            case "--cpu-secondary-left": display = display with { CpuSecondaryLeft = args[++i] }; break;
+            case "--cpu-secondary-right": display = display with { CpuSecondaryRight = args[++i] }; break;
+            case "--gpu-secondary-left": display = display with { GpuSecondaryLeft = args[++i] }; break;
+            case "--gpu-secondary-right": display = display with { GpuSecondaryRight = args[++i] }; break;
+            case "--language": display = display with { Language = args[++i] }; break;
             case "--display-blocks": display = display with { Blocks = args[++i] }; break;
             case "--accent-color": display = display with { Accent = args[++i] }; break;
             case "--text-percent": display = display with { TextPercent = int.Parse(args[++i]) }; break;
@@ -138,7 +146,7 @@ try
     }
     try
     {
-        Log($"Windows System Monitor Trofeo v0.1.7; OS={Environment.OSVersion}; .NET={Environment.Version}; 64bit={Environment.Is64BitProcess}; PID={Environment.ProcessId}; mode={(checkRuntime ? "check-runtime" : monitor ? "monitor" : monitorPreview ? "monitor-preview" : demo ? "demo" : pattern ? "test-pattern" : preview ? "preview" : probe ? "probe" : "list")}");
+        Log($"Windows System Monitor Trofeo v0.1.9; OS={Environment.OSVersion}; .NET={Environment.Version}; 64bit={Environment.Is64BitProcess}; PID={Environment.ProcessId}; mode={(checkRuntime ? "check-runtime" : monitor ? "monitor" : monitorPreview ? "monitor-preview" : demo ? "demo" : pattern ? "test-pattern" : preview ? "preview" : probe ? "probe" : "list")}");
         Log($"Log: {stem}.log");
         if (checkRuntime)
         {
@@ -273,7 +281,7 @@ try
 
                 if (lastAck != null) File.WriteAllBytes(stem + "-frame-ack.bin", lastAck);
                 File.WriteAllBytes(stem + "-last.jpg", jpeg);
-                var summary = new { version = "0.1.7", mode = monitor ? "monitor" : demo ? "demo" : "test-pattern", outcome, failure,
+                var summary = new { version = "0.1.9", mode = monitor ? "monitor" : demo ? "demo" : "test-pattern", outcome, failure,
                     completedFrames = frameNumber, elapsedSeconds = sessionTime.Elapsed.TotalSeconds, targetFps = fps, usbBlockSize, blockDelayMs,
                     averageFps = frameNumber / Math.Max(0.001, sessionTime.Elapsed.TotalSeconds), totalBytes, maxTransferMs, maxRenderMs, continuous, requestedSeconds = continuous ? (int?)null : holdSeconds, metrics, lastSensors };
                 File.WriteAllText(stem + "-summary.json", System.Text.Json.JsonSerializer.Serialize(summary, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));

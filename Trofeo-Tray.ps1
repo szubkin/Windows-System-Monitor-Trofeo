@@ -1,4 +1,4 @@
-﻿param([switch]$SelfTest)
+﻿param([switch]$SelfTest,[ValidateSet('ru','en')][string]$TestLanguage='ru')
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
@@ -7,6 +7,7 @@ Add-Type -AssemblyName System.Drawing
 . (Join-Path $PSScriptRoot 'Settings-Core.ps1')
 . (Join-Path $PSScriptRoot 'Settings-Window.ps1')
 . (Join-Path $PSScriptRoot 'Log-Retention.ps1')
+$script:uiLanguage=(Read-TrofeoSettings (Join-Path $PSScriptRoot 'trofeo-settings.json')).Language
 $script:nextCleanup = [DateTime]::MinValue
 [System.Windows.Forms.Application]::EnableVisualStyles()
 $script:pending = ''
@@ -35,7 +36,7 @@ function Request-Stop([string]$next) {
 }
 function Set-Autostart([string]$action) {
     $p = Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -WindowStyle Hidden -Wait -PassThru -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSScriptRoot\Manage-Autostart.ps1`" -Action $action"
-    if ($p.ExitCode -ne 0) { throw "Autostart operation failed ($($p.ExitCode))." }
+    if ($p.ExitCode -ne 0) { throw ((Get-TrofeoText (Get-TrofeoText 'Операция автозапуска завершилась ошибкой ({0}).' $script:uiLanguage) $script:uiLanguage) -f $p.ExitCode) }
 }
 $icon = New-Object System.Windows.Forms.NotifyIcon
 $stateIcons = @{}
@@ -47,20 +48,21 @@ $icon.Text = 'Trofeo'
 . (Join-Path $PSScriptRoot 'Ui-Theme.ps1')
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
 [TrofeoUi.DarkTheme]::Menu($menu)
-$status = $menu.Items.Add('Trofeo v0.1.7')
+$status = $menu.Items.Add('Trofeo v0.2.0')
 $status.Enabled = $false
 [void]$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
-$start = $menu.Items.Add('Запустить')
-$stop = $menu.Items.Add('Остановить')
-$restart = $menu.Items.Add('Перезапустить')
+$start = $menu.Items.Add((Get-TrofeoText 'Запустить' $script:uiLanguage))
+$stop = $menu.Items.Add((Get-TrofeoText 'Остановить' $script:uiLanguage))
+$restart = $menu.Items.Add((Get-TrofeoText 'Перезапустить' $script:uiLanguage))
 [void]$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
-$auto = $menu.Items.Add('Автозапуск при входе')
-$settingsItem = $menu.Items.Add('Настройки и предпросмотр...')
+$auto = $menu.Items.Add((Get-TrofeoText 'Автозапуск при входе' $script:uiLanguage))
+$settingsItem = $menu.Items.Add((Get-TrofeoText 'Настройки и предпросмотр...' $script:uiLanguage))
 $settingsItem.add_Click({
     if ($script:pending) { return }
     $dialog=$null
     try {
         $dialog=New-TrofeoSettingsForm -OnApplied {
+            Update-TrayLanguage
             $script:nextCleanup=[DateTime]::MinValue
             if(!$script:pending -and (@(Get-Monitors).Count -gt 0 -or ($script:child -and !$script:child.HasExited))) { Request-Stop 'restart' }
         }
@@ -68,8 +70,13 @@ $settingsItem.add_Click({
     } catch { Show-Failure $_.Exception.Message }
     finally { if($dialog){$dialog.Dispose()};$timer.Start() }
 })
-$logs = $menu.Items.Add('Открыть логи')
-$quit = $menu.Items.Add('Выход')
+$logs = $menu.Items.Add((Get-TrofeoText 'Открыть логи' $script:uiLanguage))
+$quit = $menu.Items.Add((Get-TrofeoText 'Выход' $script:uiLanguage))
+function Update-TrayLanguage {
+    $script:uiLanguage=if($SelfTest){$TestLanguage}else{(Read-TrofeoSettings (Join-Path $PSScriptRoot 'trofeo-settings.json')).Language}
+    foreach($item in @($start,$stop,$restart,$auto,$settingsItem,$logs,$quit)){$item.Text=Get-TrofeoText $item.Text $script:uiLanguage}
+}
+Update-TrayLanguage
 $icon.ContextMenuStrip = $menu
 $start.add_Click({ try { Start-Monitor } catch { Show-Failure $_.Exception.Message } })
 $stop.add_Click({ try { Request-Stop 'stop' } catch { Show-Failure $_.Exception.Message } })
@@ -78,6 +85,7 @@ $quit.add_Click({ try { Request-Stop 'exit' } catch { Show-Failure $_.Exception.
 $logs.add_Click({ try { $folder=Join-Path $PSScriptRoot 'logs'; New-Item -ItemType Directory -Force -Path $folder | Out-Null; Start-Process explorer.exe -ArgumentList ('"' + $folder + '"') } catch { Show-Failure $_.Exception.Message } })
 $auto.add_Click({ try { if ($auto.Checked) { Set-Autostart 'Disable' } else { Set-Autostart 'Enable' }; $auto.Checked = !$auto.Checked } catch { Show-Failure $_.Exception.Message } })
 $menu.add_Opening({
+    Update-TrayLanguage
     try { $task=Get-ScheduledTask -TaskName 'Windows System Monitor Trofeo' -ErrorAction SilentlyContinue; $auto.Checked=($null -ne $task -and $task.State -ne 'Disabled') } catch { $auto.Checked=$false }
 })
 $timer = New-Object System.Windows.Forms.Timer
@@ -102,7 +110,7 @@ $tick = {
                 if ($next -eq 'restart') { Start-Monitor }
             } elseif ([DateTime]::UtcNow -gt $script:deadline) {
                 $script:pending = ''
-                Show-Failure 'Монитор не завершился за 45 секунд. Повторный запуск отменён; проверьте логи.'
+                Show-Failure (Get-TrofeoText 'Монитор не завершился за 45 секунд. Повторный запуск отменён; проверьте логи.' $script:uiLanguage)
             } else {
                 # Repeat the signal in case Stop was clicked while the child was still starting.
                 $signal = New-Object System.Threading.EventWaitHandle($false,[System.Threading.EventResetMode]::ManualReset,'Local\TrofeoStop')
@@ -115,11 +123,11 @@ $tick = {
         }
         $failed = $script:child -and $script:child.HasExited -and $script:child.ExitCode -ne 0
         $state = Resolve-TrayState $record @((Get-Monitors) | ForEach-Object { $_.Id }) ([bool]$launching) ([bool]$failed) ([DateTime]::UtcNow)
-        $text = @{running='Работает';waiting='Ожидает USB';stopped='Остановлен';error='Ошибка'}[$state]
-        if ($script:pending) { $text='Остановка...' }
+        $text = @{running=(Get-TrofeoText 'Работает' $script:uiLanguage);waiting=(Get-TrofeoText 'Ожидает USB' $script:uiLanguage);stopped=(Get-TrofeoText 'Остановлен' $script:uiLanguage);error=(Get-TrofeoText 'Ошибка' $script:uiLanguage)}[$state]
+        if ($script:pending) { $text=(Get-TrofeoText 'Остановка...' $script:uiLanguage) }
         $icon.Icon = $stateIcons[$state]
         $icon.Text = 'Trofeo: ' + $text
-        $status.Text = 'v0.1.7 — ' + $text
+        $status.Text = 'v0.2.0 — ' + $text
         $start.Enabled = !$running -and !$launching -and !$script:pending
         $stop.Enabled = ($running -or $launching) -and !$script:pending
         $restart.Enabled = !$script:pending
@@ -127,6 +135,7 @@ $tick = {
 }
 $timer.add_Tick($tick)
 if ($SelfTest) {
+    if($start.Text -ne (Get-TrofeoText 'Запустить' $script:uiLanguage) -or $settingsItem.Text -ne (Get-TrofeoText 'Настройки и предпросмотр...' $script:uiLanguage)){throw 'Tray language not applied'}
     if ($menu.Items.Count -ne 10 -or $icon.Text -ne 'Trofeo') { throw 'Tray construction failed' }
     $script:fakeRunning = $true
     $script:starts = 0

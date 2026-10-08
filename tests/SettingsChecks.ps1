@@ -71,3 +71,14 @@ foreach($bad in @('','CPU,CPU','UNKNOWN')){
     $display.DisplayBlocks=$bad;$rejected=$false;try{Save-TrofeoSettings $display $path}catch{$rejected=$true}
     Check ($rejected -and (Read-TrofeoSettings $path).DisplayBlocks -eq 'CPU,GPU') 'bad display selection cannot overwrite saved settings'
 }
+
+$data=New-TrofeoDefaults
+Check ($data.Language -eq 'ru') 'old configurations default to Russian'
+$data.Language='en';Save-TrofeoSettings $data $path
+$loaded=Import-TrofeoSettings $path
+$argsForLanguage=@(Get-TrofeoArguments $loaded 'Monitor' $testRoot $root)
+Check ($loaded.Language -eq 'en' -and $argsForLanguage -contains '--language' -and $argsForLanguage -contains 'en') 'language survives export/import and reaches monitor'
+$data.Language='de';$rejected=$false;try{Save-TrofeoSettings $data $path}catch{$rejected=$true}
+Check ($rejected -and (Read-TrofeoSettings $path).Language -eq 'en') 'unsupported language cannot replace saved settings'
+
+Check ((Get-TrofeoText 'D:\ (недоступен)' 'en') -eq 'D:\ (unavailable)' -and (Get-TrofeoText ' (недоступен)' 'en') -eq ' (unavailable)') 'unavailable item suffix translates without recursion'

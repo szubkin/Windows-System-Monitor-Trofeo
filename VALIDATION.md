@@ -161,3 +161,23 @@ Settings window tests passed at 100% and simulated 150% scale: appearance labels
 - Windows inventory on this PC reports four DDR3 modules configured at 1600. DDR speed is displayed in MT/s. No USB transfer used during validation.
 - Self-contained installer tested in artifacts/setup-check-017; bundled .NET runtime check and live draft-preview/Apply/shutdown checks passed.
 - Physical LCD confirmation after installation is pending. GitHub main/Latest stays unchanged.
+
+## v0.1.9 — Russian and English
+
+- 138 C# protocol/rendering/metadata/draft checks passed. Both language dashboards inspected, fit the LY JPEG limit, and unsupported languages are rejected.
+- Settings switch ru→en→ru at 100% and 150%; underlying CPU/GPU option values are retained, the settings file stays unchanged before Apply, and Apply saves the selected language. English screenshots inspected.
+- 21 settings checks cover old-config Russian defaults, language round trip through export/import, CLI forwarding, validation, and unavailable-item translation. Tray SelfTest passed in Russian and English without USB.
+- Live English draft preview and translated connection status verified in an isolated installed copy. Apply callback and renderer shutdown passed.
+- Self-contained installer tested in both languages, including switching each way; selected English settings retained on reinstall. Final packaged localization, settings, preview and launcher bytes match source. Installer language choices use two explicit radio buttons, with selected state and switching tested in both directions.
+- Physical LCD confirmation and real startup with v0.1.9 remain pending user installation. Technical diagnostic logs and native Windows dialogs retain their original language.
+
+## v0.2.0 — themes, profiles, sensors and tools
+
+- 160 C# checks cover both palettes, optional primary/secondary metrics, missing and stale power/fan readings, CPU package selection, explicit CPU fan names, and diagnostic report behavior.
+- 21 existing settings checks plus 14 new feature checks pass. Presets preserve runtime choices; unsupported release tags, prereleases and external URLs are rejected.
+- Settings UI and preset switching verified in isolated copies at 100% and 150%. An empty draft block selection can be recovered by selecting a preset. Footer alignment, translated controls and unchanged files before Apply are verified.
+- Live draft preview of light theme and selected GPU fan verified. Apply saves theme and metric choices while keeping the settings window open; private renderer shuts down cleanly.
+- Diagnostics button successfully discovers WINUSB without any USB transfer, saves its report and returns to ready state. Viewer launch is injected in the test to avoid opening a text editor.
+- Manual asynchronous GitHub check returns installed 0.2.0 versus published 0.1.0. No update is falsely offered.
+- Self-contained Windows x64 installer built; isolated installation includes the new settings tools. English tray menu regression passed.
+- Physical display testing of these new features and availability of additional sensors on the user's hardware remain pending installation. Existing sleep/USB recovery code is unchanged.

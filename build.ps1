@@ -16,7 +16,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Publish failed' }
     & (Join-Path $publishRoot 'WindowsSystemMonitorTrofeo.exe') --check-runtime
     if ($LASTEXITCODE -ne 0) { throw 'Published runtime check failed' }
-    $releaseRoot = Join-Path $PSScriptRoot 'artifacts\v0.1.7'
+    $releaseRoot = Join-Path $PSScriptRoot 'artifacts\v0.2.0'
     New-Item -ItemType Directory -Force -Path $releaseRoot | Out-Null
     Get-ChildItem -LiteralPath $publishRoot | Where-Object { $_.Name -ne 'logs' } | Copy-Item -Destination $releaseRoot -Recurse -Force
     Copy-Item -LiteralPath (Join-Path $releaseRoot 'WindowsSystemMonitorTrofeo.exe') -Destination (Join-Path $releaseRoot 'TrofeoPreviewRenderer.exe')
